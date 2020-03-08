@@ -3,3 +3,9 @@ original_repo
 
 
 __pycache__
+
+outputs
+configs/*
+!configs/google.cfg
+!configs/scale.cfg
+!configs/eyeris.cfg

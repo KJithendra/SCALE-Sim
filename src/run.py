@@ -9,6 +9,8 @@ import os
 from os import listdir
 import glob # Unix style pathname  pattern expansion
 import fnmatch # Unix file name pattern matching
+import subprocess
+import time
 
 origin_dir = ".";
 # Copy all topology filenames into a list
@@ -73,6 +75,9 @@ for file in config_dir_content:
 topology_dir 	= origin_dir + "/topologies/mlperf/"
 config_dir		= origin_dir + "/configs/"
 run_count 		= 1
+processes = set() # Parallel processes
+max_parallel_processes = 10  # Maximum number of Parallel processes
+
 for file in topology_files:
 	for dataflow in dataflow_list:
 		for array_dim in array_dim_list:
@@ -80,9 +85,39 @@ for file in topology_files:
 			config_file_full_name = config_dir + config_file_name + ".cfg"
 			topology_file_name	= origin_dir + "/topologies/mlperf/"
 			topology_file_full_name	= topology_file_name + file 
-			scale_sim_command = "python ./scale.py -arch_config=" + config_file_full_name + " -network=" + topology_file_full_name;
+			# scale_sim_command = "python ./scale.py -arch_config=" + config_file_full_name + " -network=" + topology_file_full_name;
+			#scale_sim_command = ["df", "-h", "/home"]
+			all_outputs_dir = "../../../"
+			arch_config = "-arch_config=../../../" + config_file_full_name
+			arch_network = "-network=../../../" + topology_file_full_name
+			scale_sim_command = ["python", "../../../scale.py", arch_config, arch_network] 
 			if debug == True:
 				print(scale_sim_command)
 			print("INFO:: run_count:" + str(run_count))
-			os.system(scale_sim_command)
+			if run_count >= 16:
+
+				# os.system(scale_sim_command)
+				if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
+					os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
+				output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
+				if not os.path.exists(output_file_dir):
+					os.system("mkdir " + output_file_dir)
+				else:
+					t = time.time()
+					new_output_file_dir= output_file_dir + "_" + str(t)
+					os.system("mv " + output_file_dir + " " + new_output_file_dir)
+					os.system("mkdir " + output_file_dir)
+				os.system("cd " + output_file_dir)
+				print(os.system("pwd"))
+				processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir))
+				if(len(processes) >= max_parallel_processes ):
+					os.wait()
+					processes.difference_update([\
+						p for p in processes if p.poll() is not None])
+				os.system("cd ../../../")
+
 			run_count = run_count +1;
+
+for p in processes:
+	if p.poll() is None:
+		p.wait()
