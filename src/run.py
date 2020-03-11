@@ -2,7 +2,7 @@
 # Description	: Runs SCALE-Sim for various configurations and topologies and stores the output results.
 # Author		: K Jithendra
 
-debug = False # Make debug mode active
+debug = True # Make debug mode active
 
 #Import Libraries
 import os
@@ -32,12 +32,12 @@ for file in topology_dir_content:
 
 # Create config files
 dataflow_list	= ["os", "ws", "is"]
-array_dim_list	= [8, 16, 32, 64, 128]
+array_dim_list	= [[8,2048], [16,1024], [32,512], [64,256], [128,128], [256,64], [512,32], [1024,16], [2048,8]]
 config_dir		= origin_dir + "/configs/"
 for file in topology_files:
 	for dataflow in dataflow_list:
 		for array_dim in array_dim_list:
-			config_file_name = file[0:len(file)-4] + "_" + str(array_dim) + "_" + dataflow
+			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + array_dim[1] + "_" + dataflow
 			config_file_full_name = config_dir + config_file_name + ".cfg"
 			# if debug == True :
 			# 	print(config_file_name)
@@ -45,8 +45,8 @@ for file in topology_files:
 			lines = ["[general]" + "\n",\
 			"run_name = " + "\"" +config_file_name + "\"" +"\n\n",\
 			"[architecture_presets]\n",\
-			"ArrayHeight:    " + str(array_dim) + "\n",\
-			"ArrayWidth:     " + str(array_dim) + "\n",\
+			"ArrayHeight:    " + str(array_dim[0]) + "\n",\
+			"ArrayWidth:     " + str(array_dim[1]) + "\n",\
 			"IfmapSramSz:    512" + "\n",\
 			"FilterSramSz:   512" + "\n",\
 			"OfmapSramSz:    256" + "\n",\
@@ -81,7 +81,7 @@ max_parallel_processes = 10  # Maximum number of Parallel processes
 for file in topology_files:
 	for dataflow in dataflow_list:
 		for array_dim in array_dim_list:
-			config_file_name = file[0:len(file)-4] + "_" + str(array_dim) + "_" + dataflow
+			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + array_dim[1] + "_" + dataflow
 			config_file_full_name = config_dir + config_file_name + ".cfg"
 			topology_file_name	= origin_dir + "/topologies/mlperf/"
 			topology_file_full_name	= topology_file_name + file 
@@ -94,27 +94,26 @@ for file in topology_files:
 			if debug == True:
 				print(scale_sim_command)
 			print("INFO:: run_count:" + str(run_count))
-			if run_count >= 16:
 
-				# os.system(scale_sim_command)
-				if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
-					os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
-				output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
-				if not os.path.exists(output_file_dir):
-					os.system("mkdir " + output_file_dir)
-				else:
-					t = time.time()
-					new_output_file_dir= output_file_dir + "_" + str(t)
-					os.system("mv " + output_file_dir + " " + new_output_file_dir)
-					os.system("mkdir " + output_file_dir)
-				os.system("cd " + output_file_dir)
-				print(os.system("pwd"))
-				processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir))
-				if(len(processes) >= max_parallel_processes ):
-					os.wait()
-					processes.difference_update([\
-						p for p in processes if p.poll() is not None])
-				os.system("cd ../../../")
+			# os.system(scale_sim_command)
+			if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
+				os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
+			output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
+			if not os.path.exists(output_file_dir):
+				os.system("mkdir " + output_file_dir)
+			else:
+				t = time.time()
+				new_output_file_dir= output_file_dir + "_" + str(t)
+				os.system("mv " + output_file_dir + " " + new_output_file_dir)
+				os.system("mkdir " + output_file_dir)
+			os.system("cd " + output_file_dir)
+			print(os.system("pwd"))
+			processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=None))
+			if(len(processes) >= max_parallel_processes ):
+				os.wait()
+				processes.difference_update([\
+					p for p in processes if p.poll() is not None])
+			os.system("cd ../../../")
 
 			run_count = run_count +1;
 
