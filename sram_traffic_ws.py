@@ -69,7 +69,7 @@ def sram_traffic(
             
         # Take a slice of the starting addresses that are relevant for this v_fold 
         cols_this_fold = min(remaining_cols, max_parallel_window * dimension_cols)
-        idx_start = v * dimension_cols
+        idx_start = v * dimension_cols * max_parallel_window
         idx_end = idx_start + cols_this_fold
         col_addr_list = all_col_addr_list[idx_start:idx_end]
 
