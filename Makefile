@@ -3,3 +3,6 @@ run:
 
 process:
 	python src/dataProcessing.py
+
+folderOrg:
+	python src/outFilesOrg.py
