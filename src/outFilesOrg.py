@@ -13,3 +13,7 @@ for folder in dirContent :
 		os.makedirs(folderName + '/' + folder)
 		for file in folderContent :
 			shutil.move(rootFolder + folder + '/' + file, folderName + '/' + folder + '/')
+	if len(folderContent)!= 1 :
+		for file in folderContent :
+			if (file != outFolderName) :
+				shutil.move(rootFolder + folder + '/' + file, folderName + '/' + folder + '/')
