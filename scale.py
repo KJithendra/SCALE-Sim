@@ -176,7 +176,7 @@ class scale:
         all_arr_dim_list = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384]
         all_sram_sz_list = [256, 512, 1024]
 
-        data_flow_list = all_data_flow_list[1:]
+        data_flow_list = all_data_flow_list#[1:]
         arr_h_list = all_arr_dim_list[3:8]
         arr_w_list = all_arr_dim_list[3:8]
         #arr_w_list = list(reversed(arr_h_list))
@@ -194,7 +194,7 @@ class scale:
                 self.run_once()
 
 def main(argv):
-    s = scale(save = False, sweep = False)
+    s = scale(save = True, sweep = True)
     s.run_scale()
 
 if __name__ == '__main__':
