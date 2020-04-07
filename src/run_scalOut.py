@@ -18,12 +18,14 @@ topology_files	= []
 topology_dir 	= origin_dir + "/topologies/mlperf/"
 topology_dir_content 	= listdir(topology_dir)
 for file in topology_dir_content:
-	if fnmatch.fnmatch(file, "*.csv"):
-		if (fnmatch.fnmatch(file, "*short.csv") \
-			| fnmatch.fnmatch(file, "*LSTM.csv") \
-			| fnmatch.fnmatch(file, "test.csv") \
-			| fnmatch.fnmatch(file, "MLPERF.csv")) == False: # To avoid csv files not used in SCALE-Sim paper
-			topology_files.append(file)
+	if (fnmatch.fnmatch(file, "AlphaGoZero.csv") \
+		| fnmatch.fnmatch(file, "DeepSpeech2.csv") \
+		| fnmatch.fnmatch(file, "FasterRCNN.csv") \
+		| fnmatch.fnmatch(file, "NCF_recommendation_short.csv") \
+		| fnmatch.fnmatch(file, "Resnet50.csv") \
+		| fnmatch.fnmatch(file, "Sentimental_seqCNN.csv") \
+		| fnmatch.fnmatch(file, "Transformer_short.csv") ) == True: 
+		topology_files.append(file)
 #topology_files = glob.glob(origin_dir + "/topologies/mlperf/*.csv")
 
 # if debug == True :
@@ -77,7 +79,7 @@ config_dir		= origin_dir + "/configs/"
 run_count 		= 1
 processes = set() # Parallel processes
 max_parallel_processes = 10  # Maximum number of Parallel processes
-topo_sub_folder = ['', 'div4q/', 'div16q/', 'div64q/', 'div256q/']
+topo_sub_folder = ['./', 'div4q/', 'div16q/', 'div64q/', 'div256q/']
 for file in topology_files:
 	for dataflow in dataflow_list:
 		for ad_index, array_dim in enumerate(array_dim_list):
@@ -95,28 +97,28 @@ for file in topology_files:
 				print(scale_sim_command)
 			print("INFO:: run_count:" + str(run_count))
 
-			# # os.system(scale_sim_command)
-			# if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
-			# 	os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
-			# output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
-			# if not os.path.exists(output_file_dir):
-			# 	os.system("mkdir " + output_file_dir)
-			# else:
-			# 	t = time.time()
-			# 	new_output_file_dir= output_file_dir + "_" + str(t)
-			# 	os.system("mv " + output_file_dir + " " + new_output_file_dir)
-			# 	os.system("mkdir " + output_file_dir)
-			# os.system("cd " + output_file_dir)
-			# print(os.system("pwd"))
-			# processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=None))
-			# if(len(processes) >= max_parallel_processes ):
-			# 	os.wait()
-			# 	processes.difference_update([\
-			# 		p for p in processes if p.poll() is not None])
-			# os.system("cd ../../../")
+			# os.system(scale_sim_command)
+			if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
+				os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
+			output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
+			if not os.path.exists(output_file_dir):
+				os.system("mkdir " + output_file_dir)
+			else:
+				t = time.time()
+				new_output_file_dir= output_file_dir + "_" + str(t)
+				os.system("mv " + output_file_dir + " " + new_output_file_dir)
+				os.system("mkdir " + output_file_dir)
+			os.system("cd " + output_file_dir)
+			print(os.system("pwd"))
+			processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=None))
+			if(len(processes) >= max_parallel_processes ):
+				os.wait()
+				processes.difference_update([\
+					p for p in processes if p.poll() is not None])
+			os.system("cd ../../../")
 
 			run_count = run_count +1;
-
-# for p in processes:
-# 	if p.poll() is None:
-# 		p.wait()
+			
+for p in processes:
+	if p.poll() is None:
+		p.wait()
