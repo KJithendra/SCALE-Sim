@@ -2,6 +2,7 @@ import numpy as np
 import csv
 import matplotlib.pyplot as pyplot
 
+# Generates and saves a grouped bar graph for the data provided in rtCycles paramter
 def gBarGraph(rtCycles=[],
 				xLabel=['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
 				figName='outputs/figures/cycles.png',
@@ -29,3 +30,46 @@ def gBarGraph(rtCycles=[],
 	pyplot.savefig(figName, transparent = True, format='png', orientation = 'landscape', dpi=300)
 	if debug:
 		pyplot.show()
+
+	pyplot.close(fig=None)
+
+
+# Summation of results of different layers in a NN
+# Returns 2 variables:
+#		1. rtCycles: An nd array. Each element is the sum corresponding to one ScaleSIM run
+# 		2. mdfList: A list of files, which represents ScaleSIM runs 
+#			that are either not ran properly or the results are not stored properly
+def sum_gen(adList=[], dfList=[], nnList=[], layerCount=[], rootFolder='./', typeOfData='cycles', scaleFac=10**6,  debug=False):
+	adCount	= len(adList)
+	dfCount = len(dfList)
+	nnCount	= len(nnList)
+	
+	rtCycles	= np.zeros((adCount, dfCount, nnCount)) # Array of runtime cycles for each execution.
+	mdfList	= [] # List of Missing data files
+	for adIndex, ad in enumerate(adList) :
+		for dfIndex, df in enumerate(dfList) :
+			for nnIndex, nn in enumerate(nnList) :
+				runFolder	= nn + "_" + str(ad[0]) + "_" + str(ad[0]) + "_" + df + "/"
+				fileName = rootFolder +  runFolder + "outputs/" + runFolder + nn + "_" + typeOfData + ".csv"
+				
+				#File Parsing and data Processing
+				with open(fileName, mode = 'r') as file :
+					fileContent	= csv.DictReader(file)
+					lineCount	= 0
+					totalCycles	= 0
+
+					for line in fileContent:
+						if (lineCount == 0) :
+							lineCount += 1 #Added due to dictReader. To count the line with keys
+
+						totalCycles	+= int(line["	Cycles"])
+						lineCount	+= 1
+					if (lineCount != (layerCount[nnIndex] + 1)) :
+						mdfList.append(fileName)
+					if (debug) :
+						print(f'Total Cycles\t: {totalCycles}')
+						print(f'Lines read\t: {lineCount}')
+					rtCycles[adIndex][dfIndex][nnIndex] = totalCycles/scaleFac
+	if debug:
+		print(f'{rtCycles}')
+	return rtCycles, mdfList
