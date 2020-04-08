@@ -73,3 +73,34 @@ def sum_gen(adList=[], dfList=[], nnList=[], layerCount=[], rootFolder='./', typ
 	if debug:
 		print(f'{rtCycles}')
 	return rtCycles, mdfList
+
+#Generates and saves a scatter plot for the data provided in ratioSuSo
+def scatterPlot(ratioSUSO=[],
+				xLabel=[],
+				legendList=[],
+				figName='outputs/figures/ratioSUSO.png',
+				debug=False
+				):
+
+	rtcShape = ratioSUSO.shape
+	lineColor = ['#4F81BD', '#9F4C7C', '#9BBB59','#C0504D', '#FF9933', '#006666', '#404040']
+	x = np.arange(rtcShape[0])
+	sfLable = [chr(alph) for alph in range(ord('a'),ord('a')+rtcShape[1])]
+	
+	# Generate Connected scatter plot
+	fig, axes = pyplot.subplots(1,rtcShape[1], figsize=(rtcShape[1]*3+1,3))
+	for dfIndex in range(rtcShape[1]):
+		for i in range(rtcShape[2]):
+			axes[dfIndex].plot(np.flipud(x), ratioSUSO[:,dfIndex,i],'-o', color=lineColor[i], zorder=3)
+		axes[dfIndex].grid(True, axis='y', zorder=0)
+		axes[dfIndex].set_xlabel(sfLable[dfIndex])
+		axes[dfIndex].set_xticks(x)
+		axes[dfIndex].set_xticklabels(xLabel, rotation=45)
+	axes[0].set_ylabel('Ratio of runtimes\n(ScaleUp:ScaleOut)')
+	pyplot.legend(labels = legendList, loc = (1.01,0.2))
+	pyplot.tight_layout()
+	pyplot.savefig(figName, transparent = True, format='png', orientation = 'landscape', dpi=300)
+	if debug:
+		pyplot.show()
+
+	pyplot.close(fig=None)
