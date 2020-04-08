@@ -12,18 +12,28 @@ import fnmatch # Unix file name pattern matching
 import subprocess
 import time
 
+scaleOut = False
+if scaleOut:
+	topo_sub_folder = ['./', 'div4q/', 'div16q/', 'div64q/', 'div256q/']
+	div_base = 2
+else:
+	topo_sub_folder = ['./', './', './', './', './', './', './', './', './']
+	div_base = 1
+
 origin_dir = ".";
 # Copy all topology filenames into a list
 topology_files	= []
 topology_dir 	= origin_dir + "/topologies/mlperf/"
 topology_dir_content 	= listdir(topology_dir)
 for file in topology_dir_content:
-	if fnmatch.fnmatch(file, "*.csv"):
-		if (fnmatch.fnmatch(file, "*short.csv") \
-			| fnmatch.fnmatch(file, "*LSTM.csv") \
-			| fnmatch.fnmatch(file, "test.csv") \
-			| fnmatch.fnmatch(file, "MLPERF.csv")) == False: # To avoid csv files not used in SCALE-Sim paper
-			topology_files.append(file)
+	if (fnmatch.fnmatch(file, "AlphaGoZero.csv") \
+		| fnmatch.fnmatch(file, "DeepSpeech2.csv") \
+		| fnmatch.fnmatch(file, "FasterRCNN.csv") \
+		| fnmatch.fnmatch(file, "NCF_recommendation_short.csv") \
+		| fnmatch.fnmatch(file, "Resnet50.csv") \
+		| fnmatch.fnmatch(file, "Sentimental_seqCNN.csv") \
+		| fnmatch.fnmatch(file, "Transformer_short.csv") ) == True: 
+		topology_files.append(file)
 #topology_files = glob.glob(origin_dir + "/topologies/mlperf/*.csv")
 
 # if debug == True :
@@ -32,12 +42,15 @@ for file in topology_dir_content:
 
 # Create config files
 dataflow_list	= ["os", "ws", "is"]
-array_dim_list	= [[8,2048], [16,1024], [32,512], [64,256], [128,128], [256,64], [512,32], [1024,16], [2048,8]]
+if scaleOut:
+	array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
+else:
+	array_dim_list	= [[8,2048], [16,1024], [32,512], [64,256], [128,128], [256,64], [512,32], [1024,16], [2048,8]]
 config_dir		= origin_dir + "/configs/"
 for file in topology_files:
 	for dataflow in dataflow_list:
-		for array_dim in array_dim_list:
-			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + array_dim[1] + "_" + dataflow
+		for ad_index, array_dim in enumerate(array_dim_list):
+			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + dataflow
 			config_file_full_name = config_dir + config_file_name + ".cfg"
 			# if debug == True :
 			# 	print(config_file_name)
@@ -45,8 +58,8 @@ for file in topology_files:
 			lines = ["[general]" + "\n",\
 			"run_name = " + "\"" +config_file_name + "\"" +"\n\n",\
 			"[architecture_presets]\n",\
-			"ArrayHeight:    " + str(array_dim[0]) + "\n",\
-			"ArrayWidth:     " + str(array_dim[1]) + "\n",\
+			"ArrayHeight:    " + str(int(array_dim[0]/(div_base**ad_index))) + "\n",\
+			"ArrayWidth:     " + str(int(array_dim[1]/(div_base**ad_index))) + "\n",\
 			"IfmapSramSz:    512" + "\n",\
 			"FilterSramSz:   512" + "\n",\
 			"OfmapSramSz:    256" + "\n",\
@@ -76,14 +89,13 @@ topology_dir 	= origin_dir + "/topologies/mlperf/"
 config_dir		= origin_dir + "/configs/"
 run_count 		= 1
 processes = set() # Parallel processes
-max_parallel_processes = 10  # Maximum number of Parallel processes
-
+max_parallel_processes = min((os.cpu_count()-1),30)  # Maximum number of Parallel processes
 for file in topology_files:
 	for dataflow in dataflow_list:
-		for array_dim in array_dim_list:
-			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + array_dim[1] + "_" + dataflow
+		for ad_index, array_dim in enumerate(array_dim_list):
+			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + dataflow
 			config_file_full_name = config_dir + config_file_name + ".cfg"
-			topology_file_name	= origin_dir + "/topologies/mlperf/"
+			topology_file_name	= origin_dir + "/topologies/mlperf/" + topo_sub_folder[ad_index]
 			topology_file_full_name	= topology_file_name + file 
 			# scale_sim_command = "python ./scale.py -arch_config=" + config_file_full_name + " -network=" + topology_file_full_name;
 			#scale_sim_command = ["df", "-h", "/home"]

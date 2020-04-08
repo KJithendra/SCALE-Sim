@@ -78,7 +78,7 @@ topology_dir 	= origin_dir + "/topologies/mlperf/"
 config_dir		= origin_dir + "/configs/"
 run_count 		= 1
 processes = set() # Parallel processes
-max_parallel_processes = 10  # Maximum number of Parallel processes
+max_parallel_processes = min((os.cpu_count()-1),30) # Maximum number of Parallel processes
 topo_sub_folder = ['./', 'div4q/', 'div16q/', 'div64q/', 'div256q/']
 for file in topology_files:
 	for dataflow in dataflow_list:
