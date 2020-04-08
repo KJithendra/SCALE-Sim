@@ -27,7 +27,7 @@ rtCycles, mdfList = sum_gen(adList=adList, dfList=dfList, \
 # Generate grouped bar Plot
 gBarGraph(	rtCycles=rtCycles, xLabel=xLabel, \
 			figName=figName, dfList=dfList, \
-			debug=debug)
+			adList=adList, debug=debug)
 
 # Scale Out
 rootFolder	= 'outputs/scaleOut_output_summary/'
@@ -41,7 +41,7 @@ rtCyclesSO, mdfListSO = sum_gen(adList=adList, dfList=dfList, \
 # Generate grouped bar Plot
 gBarGraph(	rtCycles=rtCyclesSO, xLabel=xLabel, \
 			figName=figName, dfList=dfList, \
-			debug=debug)
+			adList=adList, debug=debug)
 
 mdfList = mdfList + mdfListSO
 with open('outputs/missingDataFileList.txt', mode='w') as msFile :
@@ -54,4 +54,5 @@ legendList = ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7']
 xLabel = ['64 PE', '256 PE', '1024 PE', '4096 PE', '16384 PE']
 
 scatterPlot(ratioSUSO=ratioSuSO,xLabel=xLabel,
-				legendList=legendList,figName=figName, debug=debug)
+				legendList=legendList,figName=figName, \
+				dfList=dfList, debug=debug)

@@ -7,12 +7,13 @@ def gBarGraph(rtCycles=[],
 				xLabel=['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
 				figName='outputs/figures/cycles.png',
 				dfList=["os", "ws", "is"],
+				adList=[[128,128], [64,64], [32,32], [16,16], [8,8]],
 				debug=False):
 	rtcShape = rtCycles.shape
 	barWidth = 0.25
 	barColor = ['#4F81BD', '#9F4C7C', '#9BBB59']
 	fig, axes = pyplot.subplots(1,rtcShape[0], figsize=(rtcShape[0]*3+1,3))
-	sfLable = [chr(alph) for alph in range(ord('a'),ord('a')+rtcShape[0])]
+	# sfLable = [chr(alph) for alph in range(ord('a'),ord('a')+rtcShape[0])]
 	x = np.arange(rtcShape[2])
 	for spIndex in range(rtcShape[0]) :
 		for i in range(rtcShape[1]) :
@@ -20,14 +21,14 @@ def gBarGraph(rtCycles=[],
 
 		axes[spIndex].grid(True, axis='y', zorder=0)
 		# axes[spIndex].set_title('Cycles for array of size 128*128')
-		axes[spIndex].set_xlabel(sfLable[spIndex])
+		axes[spIndex].set_xlabel(adList[spIndex])
 		# axes[spIndex].set_ylabel('Runtime in million cycles')
 		axes[spIndex].set_xticks([x1+barWidth for x1 in x])
 		axes[spIndex].set_xticklabels(xLabel)
 	axes[0].set_ylabel('Runtime in million cycles')
 	pyplot.legend(labels = dfList, loc = (1,0.7))
 	pyplot.tight_layout()
-	pyplot.savefig(figName, transparent = True, format='png', orientation = 'landscape', dpi=300)
+	pyplot.savefig(figName, transparent = False, format='png', orientation = 'landscape', dpi=300)
 	if debug:
 		pyplot.show()
 
@@ -79,13 +80,14 @@ def scatterPlot(ratioSUSO=[],
 				xLabel=[],
 				legendList=[],
 				figName='outputs/figures/ratioSUSO.png',
+				dfList=["os", "ws", "is"],
 				debug=False
 				):
 
 	rtcShape = ratioSUSO.shape
 	lineColor = ['#4F81BD', '#9F4C7C', '#9BBB59','#C0504D', '#FF9933', '#006666', '#404040']
 	x = np.arange(rtcShape[0])
-	sfLable = [chr(alph) for alph in range(ord('a'),ord('a')+rtcShape[1])]
+	# sfLable = [chr(alph) for alph in range(ord('a'),ord('a')+rtcShape[1])]
 	
 	# Generate Connected scatter plot
 	fig, axes = pyplot.subplots(1,rtcShape[1], figsize=(rtcShape[1]*3+1,3))
@@ -93,13 +95,13 @@ def scatterPlot(ratioSUSO=[],
 		for i in range(rtcShape[2]):
 			axes[dfIndex].plot(np.flipud(x), ratioSUSO[:,dfIndex,i],'-o', color=lineColor[i], zorder=3)
 		axes[dfIndex].grid(True, axis='y', zorder=0)
-		axes[dfIndex].set_xlabel(sfLable[dfIndex])
+		axes[dfIndex].set_xlabel(dfList[dfIndex])
 		axes[dfIndex].set_xticks(x)
 		axes[dfIndex].set_xticklabels(xLabel, rotation=45)
 	axes[0].set_ylabel('Ratio of runtimes\n(ScaleUp:ScaleOut)')
 	pyplot.legend(labels = legendList, loc = (1.01,0.2))
 	pyplot.tight_layout()
-	pyplot.savefig(figName, transparent = True, format='png', orientation = 'landscape', dpi=300)
+	pyplot.savefig(figName, transparent = False, format='png', orientation = 'landscape', dpi=300)
 	if debug:
 		pyplot.show()
 
