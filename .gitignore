@@ -9,3 +9,5 @@ configs/*
 !configs/google.cfg
 !configs/scale.cfg
 !configs/eyeris.cfg
+
+*.tar.gz
