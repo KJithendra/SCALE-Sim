@@ -8,6 +8,7 @@ def sram_traffic(
         ifmap_h=7, ifmap_w=7,
         filt_h=3, filt_w=3,
         num_channels=3,
+        col_idx_base = 0,
         strides=1, num_filt=8,
         ofmap_base=2000000, filt_base=1000000, ifmap_base=0,
         sram_read_trace_file="sram_read.csv",
@@ -54,7 +55,7 @@ def sram_traffic(
     # These are the starting addresses of filter weights in the memory 
     all_col_addr_list = []
     for c in range(num_filt):
-        addr = (c) * r2c + filt_base 
+        addr = (c+col_idx_base) * r2c + filt_base 
         all_col_addr_list.append(addr)
 
     # These are the starting addresses of ifmap windows in the memory
@@ -69,7 +70,7 @@ def sram_traffic(
             
         # Take a slice of the starting addresses that are relevant for this v_fold 
         cols_this_fold = min(remaining_cols, max_parallel_window * dimension_cols)
-        idx_start = v * dimension_cols * max_parallel_window
+        idx_start = v * dimension_cols
         idx_end = idx_start + cols_this_fold
         col_addr_list = all_col_addr_list[idx_start:idx_end]
 

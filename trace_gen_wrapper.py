@@ -5,8 +5,10 @@ import sram_traffic_ws as sram_ws
 import sram_traffic_is as sram_is
 
 def gen_all_traces(
-        array_h = 4,
-        array_w = 4,
+        array_h_first = 4,
+        array_w_first = 4,
+        array_h_second = 4,
+        array_w_second = 4,
         ifmap_h = 7, ifmap_w = 7,
         filt_h  = 3, filt_w = 3,
         num_channels = 3,
@@ -15,11 +17,14 @@ def gen_all_traces(
         data_flow = 'os',
 
         word_size_bytes = 1,
-        filter_sram_size = 64, ifmap_sram_size= 64, ofmap_sram_size = 64,
+        filter_sram_size_first = 64, ifmap_sram_size_first= 64, ofmap_sram_size_first = 64,
+        filter_sram_size_second = 64, ifmap_sram_size_second= 64, ofmap_sram_size_second = 64,
 
         filt_base = 1000000, ifmap_base=0, ofmap_base = 2000000,
-        sram_read_trace_file = "sram_read.csv",
-        sram_write_trace_file = "sram_write.csv",
+        sram_read_trace_file_first = "sram0_read.csv",
+        sram_read_trace_file_second = "sram1_read.csv",
+        sram_write_trace_file_first = "sram0_write.csv",
+        sram_write_trace_file_second = "sram1_write.csv",
 
         dram_filter_trace_file = "dram_filter_read.csv",
         dram_ifmap_trace_file = "dram_ifmap_read.csv",
@@ -27,7 +32,17 @@ def gen_all_traces(
     ):
 
     sram_cycles = 0
+    sram_cycles_first = 0
+    sram_cycles_second = 0
     util        = 0
+
+    dram_filter_trace_file_first = "dram_sram0_filter_read.csv"
+    dram_ifmap_trace_file_first = "dram_sram0_ifmap_read.csv"
+    dram_ofmap_trace_file_first = "dram_sram0_ofmap_write.csv"
+
+    dram_filter_trace_file_second = "dram_sram1_filter_read.csv"
+    dram_ifmap_trace_file_second = "dram_sram1_ifmap_read.csv"
+    dram_ofmap_trace_file_second = "dram_sram1_ofmap_write.csv"
 
     print("Generating traces and bw numbers")
     if data_flow == 'os':
@@ -44,20 +59,114 @@ def gen_all_traces(
                 sram_read_trace_file=sram_read_trace_file,
                 sram_write_trace_file=sram_write_trace_file
             )
+
     elif data_flow == 'ws':
-        sram_cycles, util = \
-            sram_ws.sram_traffic(
-                dimension_rows = array_h,
-                dimension_cols = array_w,
-                ifmap_h = ifmap_h, ifmap_w = ifmap_w,
-                filt_h = filt_h, filt_w = filt_w,
-                num_channels = num_channels,
-                strides = strides, num_filt = num_filt,
-                ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
-                sram_read_trace_file = sram_read_trace_file,
-                sram_write_trace_file = sram_write_trace_file
-            )
+       
+        num_filt_first = 0
+        num_filt_second = 0
+
+        i = 1
+
+        no_of_filt_px = filt_h * filt_w * num_channels
+
+        if array_h_first < no_of_filt_px:
+           max_parallel_window_first = 1
+        else:
+           max_parallel_window_first = math.floor(array_h_first/no_of_filt_px)
+
+        if array_h_second < no_of_filt_px:
+           max_parallel_window_second = 1
+        else:
+           max_parallel_window_second = math.floor(array_h_second/no_of_filt_px)
+
+        avail_filt_per_fold = (array_w_first*max_parallel_window_first) + (array_w_second*max_parallel_window_second)
+
+        while True:
+           filt_processing = i*avail_filt_per_fold
+
+           if num_filt <= filt_processing:
+              filt_pend = num_filt - ((i-1)*avail_filt_per_fold)
+
+              if filt_pend <= (array_w_first*max_parallel_window_first) and filt_pend > (array_w_second*max_parallel_window_second): ##Accomodating the last fold in systolic 1
+                 num_filt_first = num_filt_first + filt_pend
+
+              elif filt_pend > (array_w_first*max_parallel_window_first) and filt_pend <= (array_w_second*max_parallel_window_second): ## Accomodating the last fold in systolic 2
+                 num_filt_second = num_filt_second + filt_pend
+
+              elif filt_pend == avail_filt_per_fold:
+                 num_filt_first = num_filt_first + (array_w_first*max_parallel_window_first)
+                 num_filt_second = num_filt_second + (array_w_second*max_parallel_window_second)
+
+              elif filt_pend <= (array_w_first*max_parallel_window_first) and filt_pend <= (array_w_second*max_parallel_window_second):
+                 col_ratio_first = float(filt_pend/(array_w_first*max_parallel_window_first))
+                 col_ratio_second = float(filt_pend/(array_w_second*max_parallel_window_second))
+
+                 if(col_ratio_first >= col_ratio_second):
+                    num_filt_first = num_filt_first + filt_pend
+
+                 else:
+                    num_filt_second = num_filt_second + filt_pend
+
+              else:
+                 col_ratio_first = float((filt_pend-(array_w_second*max_parallel_window_second))/(array_w_first*max_parallel_window_first))
+                 col_ratio_second = float((filt_pend-(array_w_first*max_parallel_window_first))/(array_w_second*max_parallel_window_second))
+
+                 if(col_ratio_first > col_ratio_second):
+                    num_filt_second = num_filt_second + (array_w_second*max_parallel_window_second)
+                    num_filt_first = num_filt_first + (filt_pend-(array_w_second*max_parallel_window_second))
+
+                 else:
+                    num_filt_first = num_filt_first + (array_w_first*max_parallel_window_first)
+                    num_filt_second = num_filt_second + (filt_pend-(array_w_first*max_parallel_window_first))
+
+              col_idx_base = num_filt_first    ##Starting from systolic 1 and taking the systolic 1 filter count as the beginning for the next systolic as base addresss
+
+              break
+
+           else:
+
+              num_filt_first = num_filt_first + (array_w_first*max_parallel_window_first)
+              num_filt_second = num_filt_second + (array_w_second*max_parallel_window_second)
+
+              i = i + 1
+
+        if num_filt_first > 0: 
+           sram_cycles_first, util = \
+               sram_ws.sram_traffic(
+                   dimension_rows = array_h_first,
+                   dimension_cols = array_w_first,
+                   ifmap_h = ifmap_h, ifmap_w = ifmap_w,
+                   filt_h = filt_h, filt_w = filt_w,
+                   num_channels = num_channels,
+                   col_idx_base = 0,
+                   strides = strides, num_filt = num_filt_first,
+                   ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
+                   sram_read_trace_file = sram_read_trace_file_first,
+                   sram_write_trace_file = sram_write_trace_file_first
+               )
+
+        if num_filt_second > 0:
+           sram_cycles_second, util = \
+              sram_ws.sram_traffic(
+                  dimension_rows = array_h_second,
+                  dimension_cols = array_w_second,
+                  ifmap_h = ifmap_h, ifmap_w = ifmap_w,
+                  filt_h = filt_h, filt_w = filt_w,
+                  num_channels = num_channels,
+                  col_idx_base = col_idx_base,
+                  strides = strides, num_filt = num_filt_second,
+                  ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
+                  sram_read_trace_file = sram_read_trace_file_second,
+                  sram_write_trace_file = sram_write_trace_file_second
+              )
+
+        sram_cycles = max(sram_cycles_first,sram_cycles_second)
     elif data_flow == 'is':
+        ofmap_h = (ifmap_h - filt_h)/stride + 1
+        ofmap_w = (ifmap_w - filt_w)/stride + 1
+
+        no_of_ofmap_px = ofmap_h * ofmap_w
+
         sram_cycles, util = \
             sram_is.sram_traffic(
                 dimension_rows = array_h,
@@ -73,33 +182,58 @@ def gen_all_traces(
 
     #print("Generating DRAM traffic")
     dram.dram_trace_read_v2(
-        sram_sz=ifmap_sram_size,
+        sram_sz=ifmap_sram_size_first,
         word_sz_bytes=word_size_bytes,
         min_addr=ifmap_base, max_addr=filt_base,
-        sram_trace_file=sram_read_trace_file,
-        dram_trace_file=dram_ifmap_trace_file,
+        sram_trace_file=sram_read_trace_file_first,
+        dram_trace_file=dram_ifmap_trace_file_first
     )
 
     dram.dram_trace_read_v2(
-        sram_sz= filter_sram_size,
+        sram_sz= filter_sram_size_first,
         word_sz_bytes= word_size_bytes,
         min_addr=filt_base, max_addr=ofmap_base,
-        sram_trace_file= sram_read_trace_file,
-        dram_trace_file= dram_filter_trace_file,
+        sram_trace_file= sram_read_trace_file_first,
+        dram_trace_file= dram_filter_trace_file_first
     )
 
     dram.dram_trace_write(
-        ofmap_sram_size= ofmap_sram_size,
+        ofmap_sram_size= ofmap_sram_size_first,
         data_width_bytes= word_size_bytes,
-        sram_write_trace_file= sram_write_trace_file,
-        dram_write_trace_file= dram_ofmap_trace_file
+        sram_write_trace_file= sram_write_trace_file_first,
+        dram_write_trace_file= dram_ofmap_trace_file_first
     )
+
+    dram.dram_trace_read_v2(
+        sram_sz=ifmap_sram_size_second,
+        word_sz_bytes=word_size_bytes,
+        min_addr=ifmap_base, max_addr=filt_base,
+        sram_trace_file=sram_read_trace_file_second,
+        dram_trace_file=dram_ifmap_trace_file_second
+    )
+
+    dram.dram_trace_read_v2(
+        sram_sz= filter_sram_size_second,
+        word_sz_bytes= word_size_bytes,
+        min_addr=filt_base, max_addr=ofmap_base,
+        sram_trace_file= sram_read_trace_file_second,
+        dram_trace_file= dram_filter_trace_file_second
+    )
+
+    dram.dram_trace_write(
+        ofmap_sram_size= ofmap_sram_size_second,
+        data_width_bytes= word_size_bytes,
+        sram_write_trace_file= sram_write_trace_file_second,
+        dram_write_trace_file= dram_ofmap_trace_file_second
+    )
+
+    # Selvaraj TODO: Merge both DRAM traffic CSV's for BW calculations
 
     print("Average utilization : \t"  + str(util) + " %")
     print("Cycles for compute  : \t"  + str(sram_cycles) + " cycles")
-    bw_numbers, detailed_log  = gen_bw_numbers(dram_ifmap_trace_file, dram_filter_trace_file,
-                                 dram_ofmap_trace_file, sram_write_trace_file,
-                                 sram_read_trace_file)
+    bw_numbers, detailed_log  = gen_bw_numbers(dram_ifmap_trace_file_first, dram_filter_trace_file_first, #Selvaraj TODO: Add support for two SRAM based BW generation after DRAM merge
+                                 dram_ofmap_trace_file_first, sram_write_trace_file_first,
+                                 sram_read_trace_file_first)
                                  #array_h, array_w)
 
     return bw_numbers, detailed_log, util, sram_cycles

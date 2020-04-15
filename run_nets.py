@@ -3,20 +3,29 @@ import os
 import subprocess
 
 
-def run_net( ifmap_sram_size=1,
-             filter_sram_size=1,
-             ofmap_sram_size=1,
-             array_h=32,
-             array_w=32,
+def run_net( ifmap_sram_size_first=1,
+             filter_sram_size_first=1,
+             ofmap_sram_size_first=1,
+             ifmap_sram_size_second=1,
+             filter_sram_size_second=1,
+             ofmap_sram_size_second=1,
+             array_h_first=32,
+             array_w_first=32,
+             array_h_second = 32,
+             array_w_second = 31,
              data_flow = 'os',
              topology_file = './topologies/yolo_v2.csv',
              net_name='yolo_v2',
              offset_list = [0, 10000000, 20000000]
             ):
 
-    ifmap_sram_size *= 1024
-    filter_sram_size *= 1024
-    ofmap_sram_size *= 1024
+    ifmap_sram_size_first *= 1024
+    filter_sram_size_first *= 1024
+    ofmap_sram_size_first *= 1024
+
+    ifmap_sram_size_second *= 1024
+    filter_sram_size_second *= 1024
+    ofmap_sram_size_second *= 1024
 
     #fname = net_name + ".csv"
     param_file = open(topology_file, 'r')
@@ -79,13 +88,15 @@ def run_net( ifmap_sram_size=1,
         filter_base = offset_list[1]
         ofmap_base  = offset_list[2]
 
-        bw_log = str(ifmap_sram_size) +",\t" + str(filter_sram_size) + ",\t" + str(ofmap_sram_size) + ",\t" + name + ",\t"
+        bw_log = str(ifmap_sram_size_first) +",\t" + str(filter_sram_size_first) + ",\t" + str(ofmap_sram_size_first) + ",\t" + str(ifmap_sram_size_second) +",\t" + str(filter_sram_size_second) + ",\t" + str(ofmap_sram_size_second) + ",\t" + name + ",\t"
         max_bw_log = bw_log
         detailed_log = name + ",\t"
 
         bw_str, detailed_str, util, clk =  \
-            tg.gen_all_traces(  array_h = array_h,
-                                array_w = array_w,
+            tg.gen_all_traces(  array_h_first = array_h_first,
+                                array_w_first = array_w_first,
+                                array_h_second = array_h_second,
+                                array_w_second = array_w_second,
                                 ifmap_h = ifmap_h,
                                 ifmap_w = ifmap_w,
                                 filt_h = filt_h,
@@ -95,14 +106,19 @@ def run_net( ifmap_sram_size=1,
                                 strides = strides,
                                 data_flow = data_flow,
                                 word_size_bytes = 1,
-                                filter_sram_size = filter_sram_size,
-                                ifmap_sram_size = ifmap_sram_size,
-                                ofmap_sram_size = ofmap_sram_size,
+                                filter_sram_size_first = filter_sram_size_first,
+                                ifmap_sram_size_first = ifmap_sram_size_first,
+                                ofmap_sram_size_first = ofmap_sram_size_first,
+                                filter_sram_size_second = filter_sram_size_second,
+                                ifmap_sram_size_second = ifmap_sram_size_second,
+                                ofmap_sram_size_second = ofmap_sram_size_second,
                                 filt_base = filter_base,
                                 ifmap_base = ifmap_base,
                                 ofmap_base = ofmap_base,
-                                sram_read_trace_file= net_name + "_" + name + "_sram_read.csv",
-                                sram_write_trace_file= net_name + "_" + name + "_sram_write.csv",
+                                sram_read_trace_file_first= net_name + "_" + name + "_sram0_read.csv",
+                                sram_read_trace_file_second= net_name + "_" + name + "_sram1_read.csv",
+                                sram_write_trace_file_first= net_name + "_" + name + "_sram0_write.csv",
+                                sram_write_trace_file_second= net_name + "_" + name + "_sram1_write.csv",
                                 dram_filter_trace_file=net_name + "_" + name + "_dram_filter_read.csv",
                                 dram_ifmap_trace_file= net_name + "_" + name + "_dram_ifmap_read.csv",
                                 dram_ofmap_trace_file= net_name + "_" + name + "_dram_ofmap_write.csv"
@@ -114,15 +130,15 @@ def run_net( ifmap_sram_size=1,
         detailed_log += detailed_str
         detail.write(detailed_log + "\n")
 
-        max_bw_log += tg.gen_max_bw_numbers(
-                                sram_read_trace_file = net_name + "_" + name + "_sram_read.csv",
-                                sram_write_trace_file= net_name + "_" + name + "_sram_write.csv",
-                                dram_filter_trace_file=net_name + "_" + name + "_dram_filter_read.csv",
-                                dram_ifmap_trace_file= net_name + "_" + name + "_dram_ifmap_read.csv",
-                                dram_ofmap_trace_file= net_name + "_" + name + "_dram_ofmap_write.csv"
-                                )
+        #max_bw_log += tg.gen_max_bw_numbers(
+        #                        sram_read_trace_file = net_name + "_" + name + "_sram0_read.csv", #TODO: Selvaraj: Need to update this for two SRAM's after DRAM CSV merge
+        #                        sram_write_trace_file= net_name + "_" + name + "_sram0_write.csv",
+        #                        dram_filter_trace_file=net_name + "_" + name + "_dram_filter_read.csv",
+        #                        dram_ifmap_trace_file= net_name + "_" + name + "_dram_ifmap_read.csv",
+        #                        dram_ofmap_trace_file= net_name + "_" + name + "_dram_ofmap_write.csv"
+        #                        )
 
-        maxbw.write(max_bw_log + "\n")
+        #maxbw.write(max_bw_log + "\n")
 
         # Anand: This is not needed, sram_traffic() returns this
         #last_line = subprocess.check_output(["tail","-1", net_name + "_" + name + "_sram_write.csv"] )
