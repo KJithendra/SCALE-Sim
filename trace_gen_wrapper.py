@@ -34,6 +34,8 @@ def gen_all_traces(
     sram_cycles = 0
     sram_cycles_first = 0
     sram_cycles_second = 0
+    array_one_used = 0
+    array_two_used = 0
     util        = 0
 
     dram_filter_trace_file_first = "dram_sram0_filter_read.csv"
@@ -130,7 +132,9 @@ def gen_all_traces(
 
               i = i + 1
 
-        if num_filt_first > 0: 
+        if num_filt_first > 0:
+           array_one_used = 1
+ 
            sram_cycles_first, util = \
                sram_ws.sram_traffic(
                    dimension_rows = array_h_first,
@@ -144,8 +148,12 @@ def gen_all_traces(
                    sram_read_trace_file = sram_read_trace_file_first,
                    sram_write_trace_file = sram_write_trace_file_first
                )
+        else:
+           sram_cycles_first = 0
 
         if num_filt_second > 0:
+           array_two_used = 1
+
            sram_cycles_second, util = \
               sram_ws.sram_traffic(
                   dimension_rows = array_h_second,
@@ -159,73 +167,173 @@ def gen_all_traces(
                   sram_read_trace_file = sram_read_trace_file_second,
                   sram_write_trace_file = sram_write_trace_file_second
               )
+        else:
+           sram_cycles_second = 0
 
-        sram_cycles = max(sram_cycles_first,sram_cycles_second)
+        sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
     elif data_flow == 'is':
-        ofmap_h = (ifmap_h - filt_h)/stride + 1
-        ofmap_w = (ifmap_w - filt_w)/stride + 1
+        ofmap_h = (ifmap_h - filt_h)/strides + 1
+        ofmap_w = (ifmap_w - filt_w)/strides + 1
 
-        no_of_ofmap_px = ofmap_h * ofmap_w
+        num_ofmap = ofmap_h * ofmap_w
 
-        sram_cycles, util = \
-            sram_is.sram_traffic(
-                dimension_rows = array_h,
-                dimension_cols = array_w,
-                ifmap_h = ifmap_h, ifmap_w = ifmap_w,
-                filt_h = filt_h, filt_w = filt_w,
-                num_channels = num_channels,
-                strides = strides, num_filt = num_filt,
-                ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
-                sram_read_trace_file = sram_read_trace_file,
-                sram_write_trace_file = sram_write_trace_file
-            )
+        num_ofmap_first = 0
+        num_ofmap_second = 0
+
+        i = 1
+
+        no_of_filt_px = filt_h * filt_w * num_channels
+
+        if array_h_first < no_of_filt_px:
+           max_parallel_window_first = 1
+        else:
+           max_parallel_window_first = math.floor(array_h_first/no_of_filt_px)
+
+        if array_h_second < no_of_filt_px:
+           max_parallel_window_second = 1
+        else:
+           max_parallel_window_second = math.floor(array_h_second/no_of_filt_px)
+
+        avail_ofmap_per_fold = (array_w_first*max_parallel_window_first) + (array_w_second*max_parallel_window_second)
+
+        while True:
+           ofmap_processing = i*avail_ofmap_per_fold
+
+           if num_ofmap <= ofmap_processing:
+              ofmap_pend = num_ofmap - ((i-1)*avail_ofmap_per_fold)
+
+              if ofmap_pend <= (array_w_first*max_parallel_window_first) and ofmap_pend > (array_w_second*max_parallel_window_second): ##Accomodating the last fold in systolic 1
+                 num_ofmap_first = num_ofmap_first + ofmap_pend
+
+              elif ofmap_pend > (array_w_first*max_parallel_window_first) and ofmap_pend <= (array_w_second*max_parallel_window_second): ## Accomodating the last fold in systolic 2
+                 num_ofmap_second = num_ofmap_second + ofmap_pend
+
+              elif ofmap_pend == avail_ofmap_per_fold:
+                 num_ofmap_first = num_ofmap_first + (array_w_first*max_parallel_window_first)
+                 num_ofmap_second = num_ofmap_second + (array_w_second*max_parallel_window_second)
+
+              elif ofmap_pend <= (array_w_first*max_parallel_window_first) and ofmap_pend <= (array_w_second*max_parallel_window_second):
+                 col_ratio_first = float(ofmap_pend/(array_w_first*max_parallel_window_first))
+                 col_ratio_second = float(ofmap_pend/(array_w_second*max_parallel_window_second))
+
+                 if(col_ratio_first >= col_ratio_second):
+                    num_ofmap_first = num_ofmap_first + ofmap_pend
+
+                 else:
+                    num_ofmap_second = num_ofmap_second + ofmap_pend
+
+              else:
+                 col_ratio_first = float((ofmap_pend-(array_w_second*max_parallel_window_second))/(array_w_first*max_parallel_window_first))
+                 col_ratio_second = float((ofmap_pend-(array_w_first*max_parallel_window_first))/(array_w_second*max_parallel_window_second))
+
+                 if(col_ratio_first > col_ratio_second):
+                    num_ofmap_second = num_ofmap_second + (array_w_second*max_parallel_window_second)
+                    num_ofmap_first = num_ofmap_first + (ofmap_pend-(array_w_second*max_parallel_window_second))
+
+                 else:
+                    num_ofmap_first = num_ofmap_first + (array_w_first*max_parallel_window_first)
+                    num_ofmap_second = num_ofmap_second + (ofmap_pend-(array_w_first*max_parallel_window_first))
+
+              col_idx_base = num_ofmap_first    ##Starting from systolic 1 and taking the systolic 1 filter count as the beginning for the next systolic as base addresss
+
+              break
+
+           else:
+
+              num_ofmap_first = num_ofmap_first + (array_w_first*max_parallel_window_first)
+              num_ofmap_second = num_ofmap_second + (array_w_second*max_parallel_window_second)
+
+              i = i + 1
+
+
+        if num_ofmap_first > 0:
+           array_one_used = 1
+
+           sram_cycles_first, util = \
+               sram_is.sram_traffic(
+                   dimension_rows = array_h_first,
+                   dimension_cols = array_w_first,
+                   ifmap_h = ifmap_h, ifmap_w = ifmap_w,
+                   filt_h = filt_h, filt_w = filt_w,
+                   num_channels = num_channels,
+                   strides = strides, num_ofmap = num_ofmap_first,
+                   col_idx_base = 0,
+                   ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
+                   sram_read_trace_file = sram_read_trace_file_first,
+                   sram_write_trace_file = sram_write_trace_file_first
+               )
+        else:
+           sram_cycles_first = 0
+
+        if num_ofmap_second > 0:
+           array_two_used = 1
+
+           sram_cycles_second, util = \
+               sram_is.sram_traffic(
+                   dimension_rows = array_h_second,
+                   dimension_cols = array_w_second,
+                   ifmap_h = ifmap_h, ifmap_w = ifmap_w,
+                   filt_h = filt_h, filt_w = filt_w,
+                   num_channels = num_channels,
+                   strides = strides, num_ofmap = num_ofmap_second,
+                   col_idx_base = col_idx_base,
+                   ofmap_base = ofmap_base, filt_base = filt_base, ifmap_base = ifmap_base,
+                   sram_read_trace_file = sram_read_trace_file_second,
+                   sram_write_trace_file = sram_write_trace_file_second
+               )
+        else:
+           sram_cycles_second = 0
+
+        sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
 
     #print("Generating DRAM traffic")
-    dram.dram_trace_read_v2(
-        sram_sz=ifmap_sram_size_first,
-        word_sz_bytes=word_size_bytes,
-        min_addr=ifmap_base, max_addr=filt_base,
-        sram_trace_file=sram_read_trace_file_first,
-        dram_trace_file=dram_ifmap_trace_file_first
-    )
+    if array_one_used == 1:
+       dram.dram_trace_read_v2(
+           sram_sz=ifmap_sram_size_first,
+           word_sz_bytes=word_size_bytes,
+           min_addr=ifmap_base, max_addr=filt_base,
+           sram_trace_file=sram_read_trace_file_first,
+           dram_trace_file=dram_ifmap_trace_file_first
+       )
 
-    dram.dram_trace_read_v2(
-        sram_sz= filter_sram_size_first,
-        word_sz_bytes= word_size_bytes,
-        min_addr=filt_base, max_addr=ofmap_base,
-        sram_trace_file= sram_read_trace_file_first,
-        dram_trace_file= dram_filter_trace_file_first
-    )
+       dram.dram_trace_read_v2(
+           sram_sz= filter_sram_size_first,
+           word_sz_bytes= word_size_bytes,
+           min_addr=filt_base, max_addr=ofmap_base,
+           sram_trace_file= sram_read_trace_file_first,
+           dram_trace_file= dram_filter_trace_file_first
+       )
 
-    dram.dram_trace_write(
-        ofmap_sram_size= ofmap_sram_size_first,
-        data_width_bytes= word_size_bytes,
-        sram_write_trace_file= sram_write_trace_file_first,
-        dram_write_trace_file= dram_ofmap_trace_file_first
-    )
+       dram.dram_trace_write(
+           ofmap_sram_size= ofmap_sram_size_first,
+           data_width_bytes= word_size_bytes,
+           sram_write_trace_file= sram_write_trace_file_first,
+           dram_write_trace_file= dram_ofmap_trace_file_first
+       )
 
-    dram.dram_trace_read_v2(
-        sram_sz=ifmap_sram_size_second,
-        word_sz_bytes=word_size_bytes,
-        min_addr=ifmap_base, max_addr=filt_base,
-        sram_trace_file=sram_read_trace_file_second,
-        dram_trace_file=dram_ifmap_trace_file_second
-    )
+    if array_two_used == 1:
+       dram.dram_trace_read_v2(
+           sram_sz=ifmap_sram_size_second,
+           word_sz_bytes=word_size_bytes,
+           min_addr=ifmap_base, max_addr=filt_base,
+           sram_trace_file=sram_read_trace_file_second,
+           dram_trace_file=dram_ifmap_trace_file_second
+       )
 
-    dram.dram_trace_read_v2(
-        sram_sz= filter_sram_size_second,
-        word_sz_bytes= word_size_bytes,
-        min_addr=filt_base, max_addr=ofmap_base,
-        sram_trace_file= sram_read_trace_file_second,
-        dram_trace_file= dram_filter_trace_file_second
-    )
+       dram.dram_trace_read_v2(
+           sram_sz= filter_sram_size_second,
+           word_sz_bytes= word_size_bytes,
+           min_addr=filt_base, max_addr=ofmap_base,
+           sram_trace_file= sram_read_trace_file_second,
+           dram_trace_file= dram_filter_trace_file_second
+       )
 
-    dram.dram_trace_write(
-        ofmap_sram_size= ofmap_sram_size_second,
-        data_width_bytes= word_size_bytes,
-        sram_write_trace_file= sram_write_trace_file_second,
-        dram_write_trace_file= dram_ofmap_trace_file_second
-    )
+       dram.dram_trace_write(
+           ofmap_sram_size= ofmap_sram_size_second,
+           data_width_bytes= word_size_bytes,
+           sram_write_trace_file= sram_write_trace_file_second,
+           dram_write_trace_file= dram_ofmap_trace_file_second
+       )
 
     # Selvaraj TODO: Merge both DRAM traffic CSV's for BW calculations
 
@@ -236,7 +344,7 @@ def gen_all_traces(
                                  sram_read_trace_file_first)
                                  #array_h, array_w)
 
-    return bw_numbers, detailed_log, util, sram_cycles
+    return bw_numbers, detailed_log, util, str(sram_cycles)
 
 
 def gen_max_bw_numbers( dram_ifmap_trace_file, dram_filter_trace_file,

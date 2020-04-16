@@ -7,7 +7,8 @@ def sram_traffic(
         dimension_cols=4,
         ifmap_h=7, ifmap_w=7,
         filt_h=3, filt_w=3,
-        num_channels=3,
+        num_channels=3, num_ofmap = 4,
+        col_idx_base = 0,
         strides=1, num_filt=8,
         ofmap_base=2000000, filt_base=1000000, ifmap_base=0,
         sram_read_trace_file="sram_read.csv",
@@ -26,7 +27,7 @@ def sram_traffic(
 
     # Total number of ofmap px across all channels
     num_ofmap_px = E_h * E_w * num_filt
-    e2  = E_h * E_w
+    e2  = num_ofmap
     e2m = num_ofmap_px
     
     # Variables to calculate folds in runtime
@@ -43,7 +44,7 @@ def sram_traffic(
     else:
         max_parallel_window = math.floor(dimension_rows/ px_per_conv_window)
 
-    reqd_cols = e2          # Total number of cols need to be mapped
+    reqd_cols = int(e2)          # Total number of cols need to be mapped
     max_cols_per_v_fold = max_parallel_window * dimension_cols
     num_v_fold = math.ceil(reqd_cols / max_cols_per_v_fold)
 
@@ -54,6 +55,7 @@ def sram_traffic(
     # These are the starting addresses of ifmap windows in the memory 
     all_ifmap_base_addr_list = []
     for px in range(int(e2)):
+        px  = px + col_idx_base
         addr = int(px / E_w) * strides * hc + (px%E_w) * strides * num_channels
         all_ifmap_base_addr_list.append(addr)
 
