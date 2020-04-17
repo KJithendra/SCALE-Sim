@@ -8,7 +8,7 @@ def sram_traffic(
         ifmap_h=7, ifmap_w=7,
         filt_h=3, filt_w=3,
         num_channels=3,
-        col_idx_base = 0,
+        col_idx_base = 0, total_num_filt = 8,
         strides=1, num_filt=8,
         ofmap_base=2000000, filt_base=1000000, ifmap_base=0,
         sram_read_trace_file="sram_read.csv",
@@ -116,7 +116,7 @@ def sram_traffic(
                                             parallel_window =1,
                                             num_ofmap_px = int(e2),
                                             filters_done = (v * dimension_cols),
-                                            num_filter = num_filt,
+                                            num_filter = num_filt, total_num_filter = total_num_filt, col_idx_base = col_idx_base,
                                             sram_write_trace_file = sram_write_trace_file
                                             ) 
 
@@ -168,7 +168,7 @@ def sram_traffic(
                             window_size = r2c,
                             num_ofmap_px = int(e2),
                             filters_done = int(v * max_parallel_window * dimension_cols),
-                            num_filter = num_filt,
+                            num_filter = num_filt, total_num_filter = total_num_filt, col_idx_base = col_idx_base,
                             sram_write_trace_file = sram_write_trace_file
                             )
             cycles = max(cycles_ifmap, cycles_ofmap)
@@ -461,6 +461,8 @@ def gen_trace_ofmap(
                     num_ofmap_px = 16,      # This is per ofmap channel
                     filters_done = 0,       # To track v fold
                     num_filter   = 8,       # To track if all filters have finished
+                    total_num_filter = 8,
+                    col_idx_base = 0,
                     sram_write_trace_file = "sram_write.csv"
 ):
     outfile = open(sram_write_trace_file,'a')
@@ -489,7 +491,7 @@ def gen_trace_ofmap(
         done = filters_done
         for col in range(effective_cols):
             if done < num_filter:
-                a = e * num_filter + col                # z first row major
+                a = e * total_num_filter + col + col_idx_base                # z first row major
                 a = a + ofmap_add_offset + ofmap_base
                 entry += str(a) + ", "
             else: 
