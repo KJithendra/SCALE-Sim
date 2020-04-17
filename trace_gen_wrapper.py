@@ -9,6 +9,7 @@ def gen_all_traces(
         array_w_first = 4,
         array_h_second = 4,
         array_w_second = 4,
+        single_array = 1,
         ifmap_h = 7, ifmap_w = 7,
         filt_h  = 3, filt_w = 3,
         num_channels = 3,
@@ -109,6 +110,10 @@ def gen_all_traces(
               num_filt_second = num_filt_second + (array_w_second*max_parallel_window_second)
 
               i = i + 1
+
+        if single_array == 1:
+           num_filt_first = num_filt
+           num_filt_second = 0
 
         if num_filt_first > 0:
            array_one_used = 1
@@ -218,6 +223,10 @@ def gen_all_traces(
               num_filt_second = num_filt_second + (array_w_second*max_parallel_window_second)
 
               i = i + 1
+ 
+        if single_array == 1:
+           num_filt_first = num_filt
+           num_filt_second = 0
 
         if num_filt_first > 0:
            array_one_used = 1
@@ -332,6 +341,9 @@ def gen_all_traces(
 
               i = i + 1
 
+        if single_array == 1:
+           num_ofmap_first = num_ofmap
+           num_ofmap_second = 0
 
         if num_ofmap_first > 0:
            array_one_used = 1
