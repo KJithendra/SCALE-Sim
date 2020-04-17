@@ -9,8 +9,8 @@ def sram_traffic(
         ifmap_h=7, ifmap_w=7,
         filt_h=3, filt_w=3,
         num_channels=3,
-        strides=1, num_filt=8,
-        ofmap_base=2000000, filt_base=1000000, ifmap_base=0,
+        strides=1, num_filt=8, total_num_filt = 8,
+        ofmap_base=2000000, filt_base=1000000, ifmap_base=0, col_idx_base = 0,
         sram_read_trace_file="sram_read.csv",
         sram_write_trace_file="sram_write.csv"
 ):
@@ -43,7 +43,7 @@ def sram_traffic(
                             num_h_fold = int(num_h_fold),
                             ifmap_h = ifmap_h, ifmap_w= ifmap_w,
                             filt_h= filt_h, filt_w= filt_w,
-                            num_channels= num_channels, stride=strides,
+                            num_channels= num_channels, stride=strides, col_idx_base = col_idx_base,
                             ofmap_h= int(E_h), ofmap_w= int(E_w), num_filters = num_filt,
                             filt_base= filt_base, ifmap_base= ifmap_base,
                             sram_read_trace_file= sram_read_trace_file
@@ -55,8 +55,8 @@ def sram_traffic(
                         dim_cols = dimension_cols,
                         #num_v_fold = int(num_v_fold),
                         #num_h_fold = int(num_h_fold),
-                        ofmap_h = int(E_h), ofmap_w = int(E_w),
-                        num_filters = num_filt,
+                        ofmap_h = int(E_h), ofmap_w = int(E_w), col_idx_base = col_idx_base,
+                        num_filters = num_filt, total_num_filters = total_num_filt,
                         ofmap_base = ofmap_base,
                         conv_window_size = r2c,
                         sram_write_trace_file = sram_write_trace_file
@@ -76,7 +76,7 @@ def gen_read_trace(
         num_h_fold = 1,
         ifmap_h = 7, ifmap_w = 7,
         filt_h = 3, filt_w =3,
-        num_channels = 3, stride = 1,
+        num_channels = 3, stride = 1, col_idx_base = 0,
         ofmap_h =5, ofmap_w = 5, num_filters = 8, 
         filt_base = 1000000, ifmap_base = 0,
         sram_read_trace_file = "sram_read.csv",
@@ -131,7 +131,7 @@ def gen_read_trace(
         v_fold_barrier.append(False)
 
     for c in range(dim_cols):
-        base_addr = c * r2c
+        base_addr = (c + col_idx_base) * r2c
 
         # Anand: TODO
         if c < remaining_filt:
@@ -275,7 +275,7 @@ def gen_read_trace(
                         col_clk_offset[c] = 0
                         h_fold_col[c] = 0
 
-                        base = filt_id * r2c
+                        base = (filt_id + col_idx_base) * r2c
                         col_base_addr[c] = base
 
                     else:
@@ -316,8 +316,8 @@ def gen_write_trace(
         dim_cols = 4,
         #num_v_fold = 1,
         #num_h_fold = 1,
-        ofmap_h = 5, ofmap_w = 5,
-        num_filters = 4,
+        ofmap_h = 5, ofmap_w = 5, col_idx_base = 0,
+        num_filters = 4, total_num_filters = 8,
         ofmap_base = 2000000,
         conv_window_size = 9,                      # The number of pixels in a convolution window
         sram_write_trace_file = "sram_write.csv"
@@ -344,7 +344,7 @@ def gen_write_trace(
     for c in range(active_col):
         id_col.append(c)
 
-        base_col = c
+        base_col = c + col_idx_base
         base_addr_col.append(base_col)
 
     #Open the file for writing
@@ -364,7 +364,7 @@ def gen_write_trace(
 
             ofmap_trace = ""
             for c in range(active_col):
-                addr = ofmap_base + base_addr_col[c] + local_px * num_filters
+                addr = ofmap_base + base_addr_col[c] + local_px * total_num_filters
                 ofmap_trace += str(addr) + ", "
 
             # Write the generated traces to the file
