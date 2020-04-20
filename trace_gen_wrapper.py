@@ -37,7 +37,8 @@ def gen_all_traces(
     sram_cycles_second = 0
     array_one_used = 0
     array_two_used = 0
-    util        = 0
+    util_first     = 0
+    util_second    = 0
 
     dram_filter_trace_file_first = "dram_sram0_filter_read.csv"
     dram_ifmap_trace_file_first = "dram_sram0_ifmap_read.csv"
@@ -118,7 +119,7 @@ def gen_all_traces(
         if num_filt_first > 0:
            array_one_used = 1
 
-           sram_cycles_first, util = \
+           sram_cycles_first, util_first = \
                sram.sram_traffic(
                    dimension_rows= array_h_first,
                    dimension_cols= array_w_first,
@@ -137,7 +138,7 @@ def gen_all_traces(
         if num_filt_second > 0:
            array_two_used = 1
 
-           sram_cycles_second, util = \
+           sram_cycles_second, util_second = \
                sram.sram_traffic(
                    dimension_rows= array_h_second,
                    dimension_cols= array_w_second,
@@ -153,7 +154,6 @@ def gen_all_traces(
         else:
            sram_cycles_second = 0
 
-        sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
     elif data_flow == 'ws':
        
         num_filt_first = 0
@@ -231,7 +231,7 @@ def gen_all_traces(
         if num_filt_first > 0:
            array_one_used = 1
  
-           sram_cycles_first, util = \
+           sram_cycles_first, util_first = \
                sram_ws.sram_traffic(
                    dimension_rows = array_h_first,
                    dimension_cols = array_w_first,
@@ -250,7 +250,7 @@ def gen_all_traces(
         if num_filt_second > 0:
            array_two_used = 1
 
-           sram_cycles_second, util = \
+           sram_cycles_second, util_second = \
               sram_ws.sram_traffic(
                   dimension_rows = array_h_second,
                   dimension_cols = array_w_second,
@@ -266,7 +266,6 @@ def gen_all_traces(
         else:
            sram_cycles_second = 0
 
-        sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
     elif data_flow == 'is':
         ofmap_h = (ifmap_h - filt_h)/strides + 1
         ofmap_w = (ifmap_w - filt_w)/strides + 1
@@ -348,7 +347,7 @@ def gen_all_traces(
         if num_ofmap_first > 0:
            array_one_used = 1
 
-           sram_cycles_first, util = \
+           sram_cycles_first, util_first = \
                sram_is.sram_traffic(
                    dimension_rows = array_h_first,
                    dimension_cols = array_w_first,
@@ -367,7 +366,7 @@ def gen_all_traces(
         if num_ofmap_second > 0:
            array_two_used = 1
 
-           sram_cycles_second, util = \
+           sram_cycles_second, util_second = \
                sram_is.sram_traffic(
                    dimension_rows = array_h_second,
                    dimension_cols = array_w_second,
@@ -382,8 +381,6 @@ def gen_all_traces(
                )
         else:
            sram_cycles_second = 0
-
-        sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
 
     #print("Generating DRAM traffic")
     if array_one_used == 1:
@@ -489,6 +486,14 @@ def gen_all_traces(
        sram_controller(dram_filter_trace_file_first,dram_filter_trace_file_second,dram_filter_trace_file)
        sram_controller(dram_ofmap_trace_file_first,dram_ofmap_trace_file_second,dram_ofmap_trace_file)
 
+    if array_one_used == 1 and array_two_used == 0:
+       util = util_first
+    elif array_one_used == 0 and array_two_used == 1:
+       util = util_second
+    else:
+       util = (util_first + util_second)/2               #Equally weighted from two systolic arrays
+
+    sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
 
     print("Average utilization : \t"  + str(util) + " %")
     print("Cycles for compute  : \t"  + str(sram_cycles) + " cycles")
