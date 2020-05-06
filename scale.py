@@ -37,7 +37,11 @@ class scale:
 
         if len(ar_h) > 1:
             self.ar_h_max = ar_h[1].strip()
-        #print("Min: " + ar_h_min + " Max: " + ar_h_max)
+            self.single_array = 0
+        else:
+            self.ar_h_max = ar_h[0].strip()
+            self.single_array = 1
+        #print("Min: " + self.ar_h_min + " Max: " + self.ar_h_max)
 
         ## Array width min, max
         ar_w = config.get(arch_sec, 'ArrayWidth').split(',')
@@ -45,6 +49,10 @@ class scale:
 
         if len(ar_w) > 1:
             self.ar_w_max = ar_w[1].strip()
+            self.single_array = 0
+        else:
+            self.ar_w_max = ar_w[0].strip()
+            self.single_array = 1
 
         ## IFMAP SRAM buffer min, max
         ifmap_sram = config.get(arch_sec, 'IfmapSramSz').split(',')
@@ -52,7 +60,10 @@ class scale:
 
         if len(ifmap_sram) > 1:
             self.isram_max = ifmap_sram[1].strip()
-
+            self.single_array = 0
+        else:
+            self.isram_max = ifmap_sram[0].strip()
+            self.single_array = 1
 
         ## FILTER SRAM buffer min, max
         filter_sram = config.get(arch_sec, 'FilterSramSz').split(',')
@@ -60,6 +71,10 @@ class scale:
 
         if len(filter_sram) > 1:
             self.fsram_max = filter_sram[1].strip()
+            self.single_array = 0
+        else:
+            self.fsram_max = filter_sram[0].strip()
+            self.single_array = 1
 
 
         ## OFMAP SRAM buffer min, max
@@ -68,6 +83,10 @@ class scale:
 
         if len(ofmap_sram) > 1:
             self.osram_max = ofmap_sram[1].strip()
+            self.single_array = 0
+        else:
+            self.osram_max = ofmap_sram[0].strip()
+            self.single_array = 1
 
         self.dataflow= config.get(arch_sec, 'Dataflow')
 
@@ -106,10 +125,17 @@ class scale:
         print("====================================================")
         print("******************* SCALE SIM **********************")
         print("====================================================")
-        print("Array Size: \t" + str(self.ar_h_min) + "x" + str(self.ar_w_min))
-        print("SRAM IFMAP: \t" + str(self.isram_min))
-        print("SRAM Filter: \t" + str(self.fsram_min))
-        print("SRAM OFMAP: \t" + str(self.osram_min))
+        print("Array Size [1]: \t" + str(self.ar_h_min) + "x" + str(self.ar_w_min))
+        print("SRAM IFMAP [1]: \t" + str(self.isram_min))
+        print("SRAM Filter [1]: \t" + str(self.fsram_min))
+        print("SRAM OFMAP [1]: \t" + str(self.osram_min))
+
+        if(self.single_array == 0):
+           print("Array Size [2]: \t" + str(self.ar_h_max) + "x" + str(self.ar_w_max))
+           print("SRAM IFMAP [2]: \t" + str(self.isram_max))
+           print("SRAM Filter [2]: \t" + str(self.fsram_max))
+           print("SRAM OFMAP [2]: \t" + str(self.osram_max))
+
         print("CSV file path: \t" + self.topology_file)
         print("Dataflow: \t" + df_string)
         print("====================================================")
@@ -118,11 +144,17 @@ class scale:
         #print("Net name = " + net_name)
         offset_list = [self.ifmap_offset, self.filter_offset, self.ofmap_offset]
 
-        r.run_net(  ifmap_sram_size  = int(self.isram_min),
-                    filter_sram_size = int(self.fsram_min),
-                    ofmap_sram_size  = int(self.osram_min),
-                    array_h = int(self.ar_h_min),
-                    array_w = int(self.ar_w_min),
+        r.run_net(  ifmap_sram_size_first  = int(self.isram_min),
+                    filter_sram_size_first = int(self.fsram_min),
+                    ofmap_sram_size_first  = int(self.osram_min),
+                    array_h_first = int(self.ar_h_min),
+                    array_w_first = int(self.ar_w_min),
+                    ifmap_sram_size_second  = int(self.isram_max),
+                    filter_sram_size_second = int(self.fsram_max),
+                    ofmap_sram_size_second  = int(self.osram_max),
+                    array_h_second = int(self.ar_h_max),
+                    array_w_second = int(self.ar_w_max),
+                    single_array = int(self.single_array),
                     net_name = net_name,
                     data_flow = self.dataflow,
                     topology_file = self.topology_file,
