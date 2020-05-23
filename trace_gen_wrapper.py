@@ -488,15 +488,19 @@ def gen_all_traces(
 
     if array_one_used == 1 and array_two_used == 0:
        util = util_first
+       power_metric = (int(sram_cycles_first)*int(array_h_first)*int(array_w_first))/1000000
     elif array_one_used == 0 and array_two_used == 1:
        util = util_second
+       power_metric = (int(sram_cycles_second)*int(array_h_second)*int(array_w_second))/1000000
     else:
        util = (util_first + util_second)/2               #Equally weighted from two systolic arrays
+       power_metric = ((int(sram_cycles_first)*int(array_h_first)*int(array_w_first))+(int(sram_cycles_second)*int(array_h_second)*int(array_w_second)))/1000000
 
     sram_cycles = max(int(sram_cycles_first),int(sram_cycles_second))
 
     print("Average utilization : \t"  + str(util) + " %")
     print("Cycles for compute  : \t"  + str(sram_cycles) + " cycles")
+    print("Power consumed      : \t"  + str(power_metric) + " Mega-units")
 
 
     if single_array == 1:   # SCALE-Sim used as a single compute array simulator
