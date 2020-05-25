@@ -518,8 +518,8 @@ def gen_all_traces(
 
     elif (array_one_used == 0 and array_two_used == 1):   ## First array not powered on at all
        bw_numbers, detailed_log  = gen_bw_numbers(both_array_used = 1,array_one_idle = 1,array_two_idle = 0,dram_ifmap_trace_file = dram_ifmap_trace_file,dram_filter_trace_file =  dram_filter_trace_file,
-                                    dram_ofmap_trace_file = dram_ofmap_trace_file,sram_write_trace_file_first =  sram_write_trace_file_second,
-                                    sram_read_trace_file_first = sram_read_trace_file_second)
+                                    dram_ofmap_trace_file = dram_ofmap_trace_file,sram_write_trace_file_second =  sram_write_trace_file_second,
+                                    sram_read_trace_file_second = sram_read_trace_file_second)
 
 
     elif array_one_used == 1 and array_two_used == 1:
@@ -655,8 +655,8 @@ def gen_max_bw_numbers(both_array_used, array_one_idle, array_two_idle, dram_ifm
 
 def gen_bw_numbers( both_array_used, array_one_idle, array_two_idle,
                     dram_ifmap_trace_file, dram_filter_trace_file,
-                    dram_ofmap_trace_file, sram_write_trace_file_first, 
-                    sram_read_trace_file_first, sram_write_trace_file_second = "sram1_write.csv",
+                    dram_ofmap_trace_file, sram_write_trace_file_first = "sram0_write.csv", 
+                    sram_read_trace_file_first = "sram0_read.csv", sram_write_trace_file_second = "sram1_write.csv",
                     sram_read_trace_file_second = "sram1_read.csv"
                     #sram_read_trace_file,
                     #array_h, array_w        # These are needed for utilization calculation
@@ -804,7 +804,7 @@ def gen_bw_numbers( both_array_used, array_one_idle, array_two_idle,
     elif array_one_idle == 1:
        detailed_log += "N/A ,\t" + "N/A ,\t" + "N/A ,\t"
 
-    if both_array_used == 1:
+    if both_array_used == 1 and array_two_idle == 0:
        num_sram1_read_bytes = 0
        total_util = 0
        #print("Opening " + sram_trace_file)
@@ -840,10 +840,12 @@ def gen_bw_numbers( both_array_used, array_one_idle, array_two_idle,
     dram_activation_bw  = num_dram_activation_bytes / delta_clk
     dram_filter_bw      = num_dram_filter_bytes / delta_clk
     dram_ofmap_bw       = num_dram_ofmap_bytes / delta_clk
-    sram0_ofmap_bw       = num_sram0_ofmap_bytes / delta_clk
-    sram0_read_bw        = num_sram0_read_bytes / delta_clk
 
-    if both_array_used == 1:
+    if both_array_used == 0 or (both_array_used == 1 and array_one_idle == 0):
+       sram0_ofmap_bw       = num_sram0_ofmap_bytes / delta_clk
+       sram0_read_bw        = num_sram0_read_bytes / delta_clk
+
+    if both_array_used == 1 and array_two_idle == 0:
        sram1_ofmap_bw       = num_sram1_ofmap_bytes / delta_clk
        sram1_read_bw        = num_sram1_read_bytes / delta_clk
     #print("total_util: " + str(total_util) + ", sram_clk: " + str(sram_clk))
