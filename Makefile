@@ -9,3 +9,6 @@ process:
 
 folderOrg:
 	python src/outFilesOrg.py
+
+runBigLittle:
+	python src/run_big_little.py
