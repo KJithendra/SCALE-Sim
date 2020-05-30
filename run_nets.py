@@ -43,6 +43,9 @@ def run_net( ifmap_sram_size_first=1,
     f4name = net_name + "_detail.csv"
     detail = open(f4name, 'w')
 
+    f5name = net_name + "_power_metric.csv"
+    power_metric_file = open(f5name, 'w')
+
     if single_array == 1:
        bw.write("IFMAP SRAM Size[1],\tFilter SRAM Size[1],\tOFMAP SRAM Size[1],\tConv Layer Num,\tDRAM IFMAP Read BW,\tDRAM Filter Read BW,\tDRAM OFMAP Write BW,\tSRAM [1] Read BW,\tSRAM [1] OFMAP Write BW, \n")
        maxbw.write("IFMAP SRAM Size[1],\tFilter SRAM Size[1],\tOFMAP SRAM Size[1],\tConv Layer Num,\tMax DRAM IFMAP Read BW,\tMax DRAM Filter Read BW,\tMax DRAM OFMAP Write BW,\tMax SRAM Read BW[1],\tMax SRAM OFMAP Write BW[1],\n")
@@ -66,6 +69,7 @@ def run_net( ifmap_sram_size_first=1,
 
     cycl.write("Layer,\tCycles,\t% Utilization,\n")
     detail.write(detailed_log)
+    power_metric_file.write("Layer,\tPower metric(Mega units),\n")
 
 
     first = True
@@ -108,7 +112,7 @@ def run_net( ifmap_sram_size_first=1,
         max_bw_log = bw_log
         detailed_log = name + ",\t"
 
-        bw_str, detailed_str, util, clk, array_one_used, array_two_used =  \
+        bw_str, detailed_str, util, clk, array_one_used, array_two_used, power_metric =  \
             tg.gen_all_traces(  array_h_first = array_h_first,
                                 array_w_first = array_w_first,
                                 array_h_second = array_h_second,
@@ -188,10 +192,15 @@ def run_net( ifmap_sram_size_first=1,
         line = name + ",\t" + clk +",\t" + util_str +",\n"
         cycl.write(line)
 
+        # Power Metric
+        power_metric_line = name + ",\t" + str(power_metric) + ",\n"
+        power_metric_file.write(power_metric_line)
+
     bw.close()
     maxbw.close()
     cycl.close()
     param_file.close()
+    power_metric_file.close()
 
 #if __name__ == "__main__":
 #    sweep_parameter_space_fast()    

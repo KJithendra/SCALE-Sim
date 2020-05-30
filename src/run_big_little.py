@@ -37,7 +37,7 @@ topology_files	= []
 
 
 
-file = 'alexnet.csv'
+file = 'alexnet_short.csv'
 topology_files.append(file)
 #topology_files = glob.glob(origin_dir + "/topologies/mlperf/*.csv")
 
@@ -46,9 +46,14 @@ topology_files.append(file)
 
 
 # Create config files
-dataflow_list	= ["os", "ws", "is"]
-array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
-second_array_dim_list =[[8,8], [16,16]] 
+# dataflow_list	= ["os", "ws", "is"]
+dataflow_list	= ["ws"]
+# array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
+# second_array_dim_list =[[8,8], [16,16]] 
+# array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
+# second_array_dim_list =[[16,16]]
+array_dim_list	= [[16,64], [8,128], [4,256], [256,4], [128,8], [64,16]]
+second_array_dim_list =[[4,16], [8,8], [16,4]]
 # if scaleOut:
 # 	array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
 # else:
@@ -97,7 +102,7 @@ topology_dir 	= origin_dir + "/topologies/conv_nets/"
 config_dir		= origin_dir + "/configs/"
 run_count 		= 1
 processes = set() # Parallel processes
-max_parallel_processes = min((os.cpu_count()-1),30)  # Maximum number of Parallel processes
+max_parallel_processes = min((os.cpu_count()-4),30)  # Maximum number of Parallel processes
 for file in topology_files:
 	for second_ad_index, second_array_dim in enumerate(second_array_dim_list):
 		for dataflow in dataflow_list:
@@ -117,7 +122,7 @@ for file in topology_files:
 				print("INFO:: run_count:" + str(run_count))
 
 				# os.system(scale_sim_command)
-				output_top_folder = 'bigLittleArch_outputs/'
+				output_top_folder = 'bigLittleArch_outputs_short_pm/'
 				if not os.path.exists(origin_dir + "/outputs/" + output_top_folder):
 					os.system("mkdir " + origin_dir + "/outputs/" + output_top_folder)
 				output_file_dir = origin_dir + "/outputs/" + output_top_folder + config_file_name
@@ -130,7 +135,9 @@ for file in topology_files:
 					os.system("mkdir " + output_file_dir)
 				os.system("cd " + output_file_dir)
 				print(os.system("pwd"))
-				processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=None))
+				std_out_file = open(output_file_dir + '/' + config_file_name +'.txt', mode='w+')
+				processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=std_out_file))
+				std_out_file.close()
 				if(len(processes) >= max_parallel_processes ):
 					os.wait()
 					processes.difference_update([\

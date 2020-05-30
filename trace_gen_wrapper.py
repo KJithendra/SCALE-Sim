@@ -530,7 +530,7 @@ def gen_all_traces(
                                     #array_h, array_w)
 
 
-    return bw_numbers, detailed_log, util, str(sram_cycles), array_one_used, array_two_used
+    return bw_numbers, detailed_log, util, str(sram_cycles), array_one_used, array_two_used, power_metric
 
 
 def gen_max_bw_numbers(both_array_used, array_one_idle, array_two_idle, dram_ifmap_trace_file, dram_filter_trace_file,
