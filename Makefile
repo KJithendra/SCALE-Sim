@@ -12,3 +12,6 @@ folderOrg:
 
 runBigLittle:
 	python src/run_big_little.py
+
+blAnalysis:
+	python src/big_little_analysis.py

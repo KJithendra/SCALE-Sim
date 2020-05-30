@@ -46,13 +46,8 @@ topology_files.append(file)
 
 
 # Create config files
-# dataflow_list	= ["os", "ws", "is"]
-dataflow_list	= ["ws"]
-# array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
-# second_array_dim_list =[[8,8], [16,16]] 
-# array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
-# second_array_dim_list =[[16,16]]
-array_dim_list	= [[16,64], [8,128], [4,256], [256,4], [128,8], [64,16]]
+dataflow_list	= ["os", "ws", "is"]
+array_dim_list	= [[16,64], [8,128], [4,256], [32,32], [256,4], [128,8], [64,16]]
 second_array_dim_list =[[4,16], [8,8], [16,4]]
 # if scaleOut:
 # 	array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
