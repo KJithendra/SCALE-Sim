@@ -93,7 +93,18 @@ def create_layer_wise_summary(	analysis_folder='',
 	# TODO: Find the best config
 	with open(analysis_folder + 'run_summary.csv', mode = 'r') as summary_file :
 		fileContent	= csv.DictReader(summary_file)
-
+		# best_config= str(min([float(x[' Cycles for compute'].strip()) for x in fileContent]))
+		best_config= min(fileContent, default=0, key = lambda k: float(k[' Cycles for compute'].strip()))
+		print("Best config_details:\n" +
+			"Run_name\t\t\t:  " + best_config['run'] + "\n" +
+			"Average Utilization(%)\t\t: " + best_config[' Average utilization'] + "\n" +
+			"Total Cycles for compute\t: " + best_config[' Cycles for compute'] + "\n" +
+			"Power consumed\t\t\t: " + best_config[' Power consumed'] + "\n" +
+			"DRAM IFMAP Read BW\t\t: " + best_config[' DRAM IFMAP Read BW'] + "\n" +
+			"DRAM Filter Read BW\t\t: " + best_config[' DRAM Filter Read BW'] + "\n" +
+			"DRAM OFMAP Write BW\t\t: " + best_config[' DRAM OFMAP Write BW'] + "\n"
+			)
+	return best_config 
 root_dir = './outputs/'
 exp_folder_name = 'bigLittleArch_outputs_short_pm'
 # Analysis file location
@@ -101,7 +112,7 @@ analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 exp_dir = root_dir + exp_folder_name + '/'
 dir_content = listdir(exp_dir)
 
-create_layer_wise_summary(	analysis_folder=analysis_folder,
+best_config = create_layer_wise_summary(	analysis_folder=analysis_folder,
 								exp_dir=exp_dir,
 								dir_content=dir_content
 								)
