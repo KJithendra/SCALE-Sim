@@ -40,21 +40,22 @@ def create_layer_wise_summary(	analysis_folder='',
 	for run in dir_content:
 		out_dir = exp_dir + run + '/outputs/' + run + '/' 
 		out_dir_content = listdir(out_dir)
+		out_dir_content.sort()
 		# wod_dict = {0: {}, 1: {}, 2: {}, 3: {}, 4: {}} # write out dictionary
 		wod_dict = [{}, {}, {}, {}, {}] # write out dictionary
-		out_file_name = out_dir + 'alexnet_short_cycles.csv'
+		out_file_name = out_dir + out_dir_content[1]
 		with open(out_file_name, mode = 'r') as out_file :
 			fileContent	= csv.DictReader(out_file)
 			for ind, line in enumerate(fileContent):
 				wod_dict[ind]['run'] = run
 				wod_dict[ind]['au'] = line['\t% Utilization'].strip()
 				wod_dict[ind]['cycles'] = line['\tCycles'].strip()
-		out_file_name = out_dir + 'alexnet_short_power_metric.csv'
+		out_file_name = out_dir + out_dir_content[4]
 		with open(out_file_name, mode = 'r') as out_file :
 			fileContent	= csv.DictReader(out_file)
 			for ind, line in enumerate(fileContent):
 				wod_dict[ind]['pm'] = line['\tPower metric(Mega units)'].strip()
-		out_file_name = out_dir + 'alexnet_short_avg_bw.csv'
+		out_file_name = out_dir + out_dir_content[0]
 		with open(out_file_name, mode = 'r') as out_file :
 			fileContent	= csv.DictReader(out_file)
 			for ind, line in enumerate(fileContent):
@@ -90,8 +91,9 @@ def create_layer_wise_summary(	analysis_folder='',
 		file.close()
 	run_summary.close()
 
-	# TODO: Find the best config
-	with open(analysis_folder + 'run_summary.csv', mode = 'r') as summary_file :
+def find_best_config(file_name=''):
+	# TODO: Find the best config by using multiple metrics
+	with open(file_name, mode = 'r') as summary_file :
 		fileContent	= csv.DictReader(summary_file)
 		# best_config= str(min([float(x[' Cycles for compute'].strip()) for x in fileContent]))
 		best_config= min(fileContent, default=0, key = lambda k: float(k[' Cycles for compute'].strip()))
@@ -105,14 +107,60 @@ def create_layer_wise_summary(	analysis_folder='',
 			"DRAM OFMAP Write BW\t\t: " + best_config[' DRAM OFMAP Write BW'] + "\n"
 			)
 	return best_config 
+
+def effect_of_scaling_net(file_name='',
+							labels={},
+							transparent=False,
+							dpi=300,
+							orientation='landscape',
+							file_format='png'):
+	with open(file_name, mode = 'r') as summary_file :
+		fileContent	= csv.DictReader(summary_file)
+		cycles = []
+		run_names = []
+		for line in fileContent:
+			cycles.append(float(line[' Cycles for compute'].strip()))
+			run_id = line['run'].split('_')[2]
+			if(run_id=='32'):
+				run_id = '1times'
+			run_names.append(int(run_id[:-5]))
+		# print(cycles)
+		# print(run_names)
+		run_names, cycles = zip(*sorted(zip(run_names,cycles)))
+		fig, axes = pyplot.subplots()
+		axes.plot(run_names, cycles, marker='o')
+		axes.set_xlabel(labels['xLabel'])
+		axes.set_ylabel(labels['yLabel'])
+		axes.set_title(labels['title'])
+		axes.grid(True)
+		fig.tight_layout()
+		pyplot.savefig(labels['figName'], transparent = transparent, \
+			format= file_format, orientation = orientation, dpi= dpi)
+		pyplot.close(fig=None)
+		
+
 root_dir = './outputs/'
-exp_folder_name = 'bigLittleArch_outputs_short_pm'
+exp_folder_name = 'bigLittleArch_outputs_short_pm_scaling'
 # Analysis file location
 analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 exp_dir = root_dir + exp_folder_name + '/'
 dir_content = listdir(exp_dir)
 
-best_config = create_layer_wise_summary(	analysis_folder=analysis_folder,
+# Create summary files
+create_layer_wise_summary(	analysis_folder=analysis_folder,
 								exp_dir=exp_dir,
 								dir_content=dir_content
 								)
+
+# Find Best configuration
+file_name = analysis_folder + 'run_summary.csv'
+best_config = find_best_config(file_name=file_name)
+
+# Generate a plot for effect of scaling
+labels = {}
+labels['xLabel'] = 'Scale down factor'
+labels['yLabel'] = 'Clock cycles'
+labels['title'] = 'Effect of scaling net'
+labels['figName'] = 'outputs/figures/effect_of_scaling_net.png'
+file_name = analysis_folder + 'run_summary.csv'
+effect_of_scaling_net(file_name=file_name, labels=labels)

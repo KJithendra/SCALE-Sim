@@ -35,20 +35,21 @@ topology_files	= []
 # 		| fnmatch.fnmatch(file, "Transformer_short.csv") ) == True: 
 # 		topology_files.append(file)
 
-
-
-file = 'alexnet_short.csv'
-topology_files.append(file)
-#topology_files = glob.glob(origin_dir + "/topologies/mlperf/*.csv")
-
-# if debug == True :
-# 	print(topology_files)
-
+type_of_run="short_model_scaling"
 
 # Create config files
-dataflow_list	= ["os", "ws", "is"]
-array_dim_list	= [[16,64], [8,128], [4,256], [32,32], [256,4], [128,8], [64,16]]
-second_array_dim_list =[[4,16], [8,8], [16,4]]
+if type_of_run=="short_model":
+	file = 'alexnet_short.csv'
+	topology_files.extend(file)
+	dataflow_list	= ["os", "ws", "is"]
+	array_dim_list	= [[16,64], [8,128], [4,256], [32,32], [256,4], [128,8], [64,16]]
+	second_array_dim_list =[[4,16], [8,8], [16,4]]
+if type_of_run=="short_model_scaling":
+	file = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', 'alexnet_short_6times.csv', 'alexnet_short_4times.csv', 'alexnet.csv','alexnet_short_2times.csv']
+	topology_files.extend(file)
+	dataflow_list	= ["os"]
+	array_dim_list	= [[32,32]]
+	second_array_dim_list =[[16,4]]
 # if scaleOut:
 # 	array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
 # else:
@@ -117,7 +118,7 @@ for file in topology_files:
 				print("INFO:: run_count:" + str(run_count))
 
 				# os.system(scale_sim_command)
-				output_top_folder = 'bigLittleArch_outputs_short_pm/'
+				output_top_folder = 'bigLittleArch_outputs_short_pm_scaling/'
 				if not os.path.exists(origin_dir + "/outputs/" + output_top_folder):
 					os.system("mkdir " + origin_dir + "/outputs/" + output_top_folder)
 				output_file_dir = origin_dir + "/outputs/" + output_top_folder + config_file_name
