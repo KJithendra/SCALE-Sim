@@ -12,6 +12,7 @@ import torch.nn as nn
 import os
 from os import listdir
 import statistics
+from absl import app
 
 def create_layer_wise_summary(	analysis_folder='',
 								exp_dir='',
@@ -113,13 +114,14 @@ def effect_of_scaling_net(file_name='',
 							transparent=False,
 							dpi=300,
 							orientation='landscape',
-							file_format='png'):
+							file_format='png',
+							field_y_axis=' Cycles for compute'):
 	with open(file_name, mode = 'r') as summary_file :
 		fileContent	= csv.DictReader(summary_file)
 		cycles = []
 		run_names = []
 		for line in fileContent:
-			cycles.append(float(line[' Cycles for compute'].strip()))
+			cycles.append(float(line[field_y_axis].strip()))
 			run_id = line['run'].split('_')[2]
 			if(run_id=='32'):
 				run_id = '1times'
@@ -137,30 +139,80 @@ def effect_of_scaling_net(file_name='',
 		pyplot.savefig(labels['figName'], transparent = transparent, \
 			format= file_format, orientation = orientation, dpi= dpi)
 		pyplot.close(fig=None)
-		
 
-root_dir = './outputs/'
-exp_folder_name = 'bigLittleArch_outputs_short_pm_scaling'
-# Analysis file location
-analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
-exp_dir = root_dir + exp_folder_name + '/'
-dir_content = listdir(exp_dir)
+def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
+	flops = 0
+	with open(topology_file, mode = 'r') as net:
+		netContent = csv.DictReader(net)
+		for layer in netContent:
+			c = int(layer[' Channels'].strip())
+			h = int(layer[' IFMAP Height'].strip())
+			w = int(layer[' IFMAP Width'].strip())
+			m = int(layer[' Num Filter'].strip())
+			r = int(layer[' Filter Height'].strip())
+			s = int(layer[' Filter Width'].strip())
+			sx = int(layer[' Strides'].strip())
+			flops_for_layer = (m)*((h-r)/sx + 1)*((w-s)/sx +1)*(2*c*r*s-1)
+			flops = flops + flops_for_layer
+	return flops
 
-# Create summary files
-create_layer_wise_summary(	analysis_folder=analysis_folder,
-								exp_dir=exp_dir,
-								dir_content=dir_content
-								)
 
-# Find Best configuration
-file_name = analysis_folder + 'run_summary.csv'
-best_config = find_best_config(file_name=file_name)
+def main(argv):
+	root_dir = './outputs/'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm_scaling'
+	# Analysis file location
+	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
+	exp_dir = root_dir + exp_folder_name + '/'
+	dir_content = listdir(exp_dir)
+	print(dir_content)
+	# Create summary files
+	create_layer_wise_summary(	analysis_folder=analysis_folder,
+									exp_dir=exp_dir,
+									dir_content=dir_content
+									)
 
-# Generate a plot for effect of scaling
-labels = {}
-labels['xLabel'] = 'Scale down factor'
-labels['yLabel'] = 'Clock cycles'
-labels['title'] = 'Effect of scaling net'
-labels['figName'] = 'outputs/figures/effect_of_scaling_net.png'
-file_name = analysis_folder + 'run_summary.csv'
-effect_of_scaling_net(file_name=file_name, labels=labels)
+	# Find Best configuration
+	file_name = analysis_folder + 'run_summary.csv'
+	best_config = find_best_config(file_name=file_name)
+
+	# Generate a plot for effect of scaling
+	labels = {}
+	labels['xLabel'] = 'Scale down factor'
+	labels['yLabel'] = 'Clock cycles'
+	labels['title'] = 'Effect of scaling net'
+	labels['figName'] = 'outputs/figures/effect_of_scaling_net.png'
+	file_name = analysis_folder + 'run_summary.csv'
+	effect_of_scaling_net(file_name=file_name, labels=labels)
+
+	topology_files = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', \
+	'alexnet_short_6times.csv', 'alexnet_short_4times.csv', \
+	'alexnet_short_1times.csv','alexnet_short_2times.csv']
+	topology_files.sort()
+	topology_dir = './topologies/conv_nets/'
+	flops =[]
+	run_names =[]
+	for ind, file in enumerate(topology_files):
+		topology_file = topology_dir + file
+		flops_run = calc_flops(topology_file=topology_file)
+		flops.append(flops_run)
+		run_names.append(int(file[:-4].split('_')[2][:-5]))
+		print(run_names[ind],":", flops[ind])
+	labels = {}
+	labels['xLabel'] = 'Scale down factor'
+	labels['yLabel'] = 'FLOPs'
+	labels['title'] = 'Effect of scaling network size on FLOPs'
+	labels['figName'] = 'outputs/figures/effect_of_scaling_net_on_flops.png'
+	run_names, flops = zip(*sorted(zip(run_names,flops)))
+	fig, axes = pyplot.subplots()
+	axes.plot(run_names, flops, marker='o')
+	axes.set_xlabel(labels['xLabel'])
+	axes.set_ylabel(labels['yLabel'])
+	axes.set_title(labels['title'])
+	axes.grid(True)
+	fig.tight_layout()
+	pyplot.savefig(labels['figName'], transparent = False, \
+		format= 'png', orientation = "landscape", dpi= 300)
+	pyplot.close(fig=None)
+
+if __name__ == '__main__':
+  app.run(main)

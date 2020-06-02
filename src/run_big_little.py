@@ -45,7 +45,9 @@ if type_of_run=="short_model":
 	array_dim_list	= [[16,64], [8,128], [4,256], [32,32], [256,4], [128,8], [64,16]]
 	second_array_dim_list =[[4,16], [8,8], [16,4]]
 if type_of_run=="short_model_scaling":
-	file = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', 'alexnet_short_6times.csv', 'alexnet_short_4times.csv', 'alexnet.csv','alexnet_short_2times.csv']
+	file = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', \
+	'alexnet_short_6times.csv', 'alexnet_short_4times.csv', \
+	'alexnet.csv','alexnet_short_2times.csv', 'alexnet_short_12times.csv']
 	topology_files.extend(file)
 	dataflow_list	= ["os"]
 	array_dim_list	= [[32,32]]
