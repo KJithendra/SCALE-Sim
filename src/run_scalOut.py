@@ -110,7 +110,9 @@ for file in topology_files:
 				os.system("mkdir " + output_file_dir)
 			os.system("cd " + output_file_dir)
 			print(os.system("pwd"))
-			processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=None))
+			std_out_file = open(output_file_dir + '/' + config_file_name +'.txt', mode='w+')
+			processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=std_out_file))
+			std_out_file.close()
 			if(len(processes) >= max_parallel_processes ):
 				os.wait()
 				processes.difference_update([\
