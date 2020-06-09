@@ -146,12 +146,26 @@ def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
 
 def main(argv):
 	root_dir = './outputs/'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm'
+	# Analysis file location
+	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
+	exp_dir = root_dir + exp_folder_name + '/'
+	dir_content = listdir(exp_dir)
+	# print(dir_content)
+	# Create summary files
+	create_layer_wise_summary(	analysis_folder=analysis_folder,
+									exp_dir=exp_dir,
+									dir_content=dir_content
+									)
+
+
+	root_dir = './outputs/'
 	exp_folder_name = 'bigLittleArch_outputs_short_pm_scaling'
 	# Analysis file location
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	exp_dir = root_dir + exp_folder_name + '/'
 	dir_content = listdir(exp_dir)
-	print(dir_content)
+	# print(dir_content)
 	# Create summary files
 	create_layer_wise_summary(	analysis_folder=analysis_folder,
 									exp_dir=exp_dir,
@@ -162,7 +176,7 @@ def main(argv):
 	file_name = analysis_folder + 'run_summary.csv'
 	best_config = find_best_config(file_name=file_name)
 
-	
+
 
 	# Generate a plot for effect of scaling
 	figName = 'outputs/figures/effect_of_scaling_net_comb.png'
@@ -202,6 +216,35 @@ def main(argv):
 	axes2.set_ylabel('FLOPs', color = color)
 	axes2.tick_params(axis='y', labelcolor=color)
 	axes2.grid(True)
+	fig.tight_layout()
+	pyplot.savefig(figName, transparent = False, \
+		format= 'png', orientation = "landscape", dpi= 300)
+	pyplot.close(fig=None)
+
+	# Draw a scatter plot of computational cycles for the experiment
+	exp_folder_name = 'bigLittleArch_outputs_short_pm'
+	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
+	file_name = analysis_folder + 'run_summary.csv'
+	field_y_axis = ' Cycles for compute'
+	filed_x_axis = 'run'
+	with open(file_name, mode = 'r') as summary_file :
+		cycles_list = []
+		run_ids = []
+		fileContent	= csv.DictReader(summary_file)
+		for line in fileContent:
+			cycles_list.append(float(line[field_y_axis].strip()))
+			run_ids.append(line[filed_x_axis][14:])
+
+	fig, axes = pyplot.subplots()
+	figName = 'outputs/figures/scatter_plot_exp.png'
+	color = '#4F81BD'
+	axes.scatter(run_ids, cycles_list, marker='o', color=color)
+	axes.set_xlabel('Run name')
+	axes.set_ylabel('Clock cycles', color=color)
+	axes.set_title('Scatter plot of compute cycles')
+	axes.tick_params(axis='y', labelcolor=color)
+	axes.tick_params(axis='x', rotation=90, labelsize=4)
+	axes.grid(True)
 	fig.tight_layout()
 	pyplot.savefig(figName, transparent = False, \
 		format= 'png', orientation = "landscape", dpi= 300)
