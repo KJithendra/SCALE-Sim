@@ -126,6 +126,20 @@ def effect_of_scaling_net(file_name='', field_y_axis=' Cycles for compute'):
 		run_names, cycles = zip(*sorted(zip(run_names,cycles)))
 	return run_names, cycles
 
+def get_compute_cycles_list(file_name='', field_y_axis=' Cycles for compute',\
+						filed_x_axis = 'run'):
+	with open(file_name, mode = 'r') as summary_file :
+		fileContent	= csv.DictReader(summary_file)
+		cycles = []
+		run_names = []
+		for line in fileContent:
+			cycles.append(float(line[field_y_axis].strip()))
+			run_names.append(line[filed_x_axis][14:])
+		# print(cycles)
+		# print(run_names)
+		run_names, cycles = zip(*sorted(zip(run_names,cycles)))
+	return run_names, cycles
+
 
 def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
 	flops = 0
@@ -146,7 +160,7 @@ def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
 
 def main(argv):
 	root_dir = './outputs/'
-	exp_folder_name = 'bigLittleArch_outputs_short_pm'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws'
 	# Analysis file location
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	exp_dir = root_dir + exp_folder_name + '/'
@@ -179,7 +193,7 @@ def main(argv):
 
 
 	# Generate a plot for effect of scaling
-	figName = 'outputs/figures/effect_of_scaling_net_comb.png'
+	figName = 'outputs/figures/effect_of_scaling_net_comb_ws.png'
 	file_name = analysis_folder + 'run_summary.csv'
 	run_names, cycles = effect_of_scaling_net(file_name=file_name,\
 								field_y_axis=' Cycles for compute')
@@ -222,28 +236,21 @@ def main(argv):
 	pyplot.close(fig=None)
 
 	# Draw a scatter plot of computational cycles for the experiment
-	exp_folder_name = 'bigLittleArch_outputs_short_pm'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws'
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	file_name = analysis_folder + 'run_summary.csv'
-	field_y_axis = ' Cycles for compute'
-	filed_x_axis = 'run'
-	with open(file_name, mode = 'r') as summary_file :
-		cycles_list = []
-		run_ids = []
-		fileContent	= csv.DictReader(summary_file)
-		for line in fileContent:
-			cycles_list.append(float(line[field_y_axis].strip()))
-			run_ids.append(line[filed_x_axis][14:])
+
+	run_ids, cycles_list = get_compute_cycles_list(file_name=file_name)
 
 	fig, axes = pyplot.subplots()
-	figName = 'outputs/figures/scatter_plot_exp.png'
+	figName = 'outputs/figures/scatter_plot_exp_ws.png'
 	color = '#4F81BD'
 	axes.scatter(run_ids, cycles_list, marker='o', color=color)
 	axes.set_xlabel('Run name')
 	axes.set_ylabel('Clock cycles', color=color)
 	axes.set_title('Scatter plot of compute cycles')
 	axes.tick_params(axis='y', labelcolor=color)
-	axes.tick_params(axis='x', rotation=90, labelsize=4)
+	axes.tick_params(axis='x', rotation=90, labelsize=6)
 	axes.grid(True)
 	fig.tight_layout()
 	pyplot.savefig(figName, transparent = False, \

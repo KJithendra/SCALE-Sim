@@ -47,9 +47,9 @@ if type_of_run=="short_model":
 if type_of_run=="short_model_scaling":
 	file = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', \
 	'alexnet_short_6times.csv', 'alexnet_short_4times.csv', \
-	'alexnet.csv','alexnet_short_2times.csv', 'alexnet_short_12times.csv']
+	'alexnet_short_1times.csv','alexnet_short_2times.csv', 'alexnet_short_12times.csv']
 	topology_files.extend(file)
-	dataflow_list	= ["os"]
+	dataflow_list	= ["ws"]
 	array_dim_list	= [[32,32]]
 	second_array_dim_list =[[16,4]]
 # if scaleOut:
@@ -120,7 +120,7 @@ for file in topology_files:
 				print("INFO:: run_count:" + str(run_count))
 
 				# os.system(scale_sim_command)
-				output_top_folder = 'bigLittleArch_outputs_short_pm_scaling/'
+				output_top_folder = 'bigLittleArch_outputs_short_pm_ws_scaling/'
 				if not os.path.exists(origin_dir + "/outputs/" + output_top_folder):
 					os.system("mkdir " + origin_dir + "/outputs/" + output_top_folder)
 				output_file_dir = origin_dir + "/outputs/" + output_top_folder + config_file_name
