@@ -109,13 +109,8 @@ def find_best_config(file_name=''):
 			)
 	return best_config 
 
-def effect_of_scaling_net(file_name='',
-							labels={},
-							transparent=False,
-							dpi=300,
-							orientation='landscape',
-							file_format='png',
-							field_y_axis=' Cycles for compute'):
+
+def effect_of_scaling_net(file_name='', field_y_axis=' Cycles for compute'):
 	with open(file_name, mode = 'r') as summary_file :
 		fileContent	= csv.DictReader(summary_file)
 		cycles = []
@@ -129,16 +124,8 @@ def effect_of_scaling_net(file_name='',
 		# print(cycles)
 		# print(run_names)
 		run_names, cycles = zip(*sorted(zip(run_names,cycles)))
-		fig, axes = pyplot.subplots()
-		axes.plot(run_names, cycles, marker='o')
-		axes.set_xlabel(labels['xLabel'])
-		axes.set_ylabel(labels['yLabel'])
-		axes.set_title(labels['title'])
-		axes.grid(True)
-		fig.tight_layout()
-		pyplot.savefig(labels['figName'], transparent = transparent, \
-			format= file_format, orientation = orientation, dpi= dpi)
-		pyplot.close(fig=None)
+	return run_names, cycles
+
 
 def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
 	flops = 0
@@ -175,18 +162,27 @@ def main(argv):
 	file_name = analysis_folder + 'run_summary.csv'
 	best_config = find_best_config(file_name=file_name)
 
-	# Generate a plot for effect of scaling
-	labels = {}
-	labels['xLabel'] = 'Scale down factor'
-	labels['yLabel'] = 'Clock cycles'
-	labels['title'] = 'Effect of scaling net'
-	labels['figName'] = 'outputs/figures/effect_of_scaling_net.png'
-	file_name = analysis_folder + 'run_summary.csv'
-	effect_of_scaling_net(file_name=file_name, labels=labels)
+	
 
+	# Generate a plot for effect of scaling
+	figName = 'outputs/figures/effect_of_scaling_net_comb.png'
+	file_name = analysis_folder + 'run_summary.csv'
+	run_names, cycles = effect_of_scaling_net(file_name=file_name,\
+								field_y_axis=' Cycles for compute')
+	
+	fig, axes = pyplot.subplots()
+	color = '#4F81BD'
+	axes.plot(run_names, cycles, marker='o', color=color)
+	axes.set_xlabel('Scale down factor')
+	axes.set_ylabel('Clock cycles', color=color)
+	axes.set_title('Effect of scaling net')
+	axes.tick_params(axis='y', labelcolor=color)
+
+
+	# Calculate FLOPS for different networks
 	topology_files = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', \
 	'alexnet_short_6times.csv', 'alexnet_short_4times.csv', \
-	'alexnet_short_1times.csv','alexnet_short_2times.csv']
+	'alexnet_short_1times.csv','alexnet_short_2times.csv', 'alexnet_short_12times.csv']
 	topology_files.sort()
 	topology_dir = './topologies/conv_nets/'
 	flops =[]
@@ -197,20 +193,17 @@ def main(argv):
 		flops.append(flops_run)
 		run_names.append(int(file[:-4].split('_')[2][:-5]))
 		print(run_names[ind],":", flops[ind])
-	labels = {}
-	labels['xLabel'] = 'Scale down factor'
-	labels['yLabel'] = 'FLOPs'
-	labels['title'] = 'Effect of scaling network size on FLOPs'
-	labels['figName'] = 'outputs/figures/effect_of_scaling_net_on_flops.png'
+
 	run_names, flops = zip(*sorted(zip(run_names,flops)))
-	fig, axes = pyplot.subplots()
-	axes.plot(run_names, flops, marker='o')
-	axes.set_xlabel(labels['xLabel'])
-	axes.set_ylabel(labels['yLabel'])
-	axes.set_title(labels['title'])
-	axes.grid(True)
+
+	axes2 = axes.twinx()
+	color = '#9F4C7C'
+	axes2.plot(run_names, flops, marker='*', color=color)
+	axes2.set_ylabel('FLOPs', color = color)
+	axes2.tick_params(axis='y', labelcolor=color)
+	axes2.grid(True)
 	fig.tight_layout()
-	pyplot.savefig(labels['figName'], transparent = False, \
+	pyplot.savefig(figName, transparent = False, \
 		format= 'png', orientation = "landscape", dpi= 300)
 	pyplot.close(fig=None)
 
