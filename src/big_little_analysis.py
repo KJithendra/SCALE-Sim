@@ -135,15 +135,25 @@ def find_best_config_norm(file_name='',
 		norm_dict['power'] = norm_func(metric_dict['power'])
 		norm_dict['maxBW'] = norm_func(metric_dict['maxBW'])
 		# print(norm_dict)
+		with open(output_file_name, mode = 'w+') as out_file:
+			out_file.write('run, Average utilization, Cycles for compute,' +
+			# ' Power consumed, DRAM IFMAP Read BW, DRAM Filter Read BW, DRAM OFMAP Write BW,' +\
+			' Power consumed,' +\
+			' max_BW, norm_au, norm_cycles, norm_power, norm_maxBW, weighed_metric\n')
+			for ind in range(len(norm_dict['run_id'])):
+				weighed_metric = (norm_dict['cycles'][ind] * metric_weights['cycles']) +\
+									(norm_dict['au'][ind] * metric_weights['au']) +\
+									(norm_dict['power'][ind] * metric_weights['power']) +\
+									(norm_dict['maxBW'][ind] * metric_weights['maxBW'])
 
-		for ind in range(len(norm_dict['run_id'])):
-			weighed_metric = (norm_dict['cycles'][ind] * metric_weights['cycles']) +\
-								(norm_dict['au'][ind] * metric_weights['au']) +\
-								(norm_dict['power'][ind] * metric_weights['power']) +\
-								(norm_dict['maxBW'][ind] * metric_weights['maxBW'])
-
-			norm_dict['weighed_value'].append(weighed_metric)
-			# print(norm_dict['run_id'][ind], weighed_metric)
+				norm_dict['weighed_value'].append(weighed_metric)
+				# print(norm_dict['run_id'][ind], weighed_metric)
+				rs_string = norm_dict['run_id'][ind] + ', ' + str(metric_dict['au'][ind]) + ', '\
+					+ str(metric_dict['cycles'][ind]) + ', ' + str(metric_dict['power'][ind]) + ', '\
+					+ str(metric_dict['maxBW'][ind]) + ', ' + str(norm_dict['au'][ind]) + ', '\
+					+ str(norm_dict['cycles'][ind]) + ', '  + str(norm_dict['power'][ind]) + ', '\
+					+ str(norm_dict['maxBW'][ind]) + ', ' + str(weighed_metric) + ' \n '
+				out_file.write(rs_string)
 		# best_config= str(min([float(x[' Cycles for compute'].strip()) for x in fileContent]))
 		best_config= min(norm_dict['weighed_value'], default=0)
 		bc_index = norm_dict['weighed_value'].index(best_config)
@@ -201,8 +211,10 @@ def get_compute_cycles_list(file_name='', field_y_axis=' Cycles for compute',\
 		cycles = []
 		run_names = []
 		for line in fileContent:
-			cycles.append(float(line[field_y_axis].strip()))
-			run_names.append(line[filed_x_axis][14:])
+			# print(line)
+			if(line[field_y_axis] != None):
+				cycles.append(float(line[field_y_axis].strip()))
+				run_names.append(line[filed_x_axis][14:])
 		# print(cycles)
 		# print(run_names)
 		run_names, cycles = zip(*sorted(zip(run_names,cycles)))
@@ -246,7 +258,8 @@ def main(argv):
 
 	# Find best configuration using norm method
 	file_name = analysis_folder + 'run_summary.csv'
-	best_config_norm = find_best_config_norm(file_name=file_name)
+	best_config_norm = find_best_config_norm(file_name=file_name,\
+			 metric_weights={'cycles':0.5, 'au':0.25, 'power':0.125, 'maxBW':0.125})
 
 	root_dir = './outputs/'
 	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws_scaling'
@@ -323,6 +336,30 @@ def main(argv):
 	axes.set_xlabel('Run name')
 	axes.set_ylabel('Clock cycles', color=color)
 	axes.set_title('Scatter plot of compute cycles')
+	axes.tick_params(axis='y', labelcolor=color)
+	axes.tick_params(axis='x', rotation=90, labelsize=6)
+	axes.grid(True)
+	fig.tight_layout()
+	pyplot.savefig(figName, transparent = False, \
+		format= 'png', orientation = "landscape", dpi= 300)
+	pyplot.close(fig=None)
+
+	'''
+	Draw a scatter plot of weighed metric  for the experiment
+	'''
+	exp_folder_name = '.'
+	analysis_folder = root_dir + "analysis/" + '/'
+	file_name = analysis_folder + 'norm_data.csv'
+	print(file_name)	
+	run_ids, wm_list = get_compute_cycles_list(file_name=file_name, field_y_axis=' weighed_metric')
+
+	fig, axes = pyplot.subplots()
+	figName = 'outputs/figures/scatter_plot_exp_ws_weighed_metric_2.png'
+	color = '#4F81BD'
+	axes.scatter(run_ids, wm_list, marker='o', color=color)
+	axes.set_xlabel('Run name')
+	axes.set_ylabel('Weighed metric', color=color)
+	axes.set_title('Weighed metric vs run name')
 	axes.tick_params(axis='y', labelcolor=color)
 	axes.tick_params(axis='x', rotation=90, labelsize=6)
 	axes.grid(True)
