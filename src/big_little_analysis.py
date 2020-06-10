@@ -92,6 +92,74 @@ def create_layer_wise_summary(	analysis_folder='',
 		file.close()
 	run_summary.close()
 
+
+'''
+Find the best configuration:
+	1. Use normalization to normalize all the metrics
+	2. multiply normalized metrics with corresponding weights and sum the results. 
+		xNorm = (x-xMin)/(xMax-xMin)
+	3. The configuration with minimum value of the result from step 2 is  chosen as the best one
+'''
+
+def norm_func(metric_data=[]):
+	minVal = min(metric_data, default=0)
+	maxVal = max(metric_data, default=0)
+	norm_data = [0] * len(metric_data)
+	for ind, data in enumerate(metric_data):
+		norm_value = (data - minVal)/(maxVal - minVal)
+		# norm_data.append(norm_value)
+		norm_data[ind] = norm_value
+	return norm_data
+
+def find_best_config_norm(file_name='', 
+			metric_weights={'cycles':0.25, 'au':0.25, 'power':0.25, 'maxBW':0.25},
+			output_file_name='outputs/analysis/norm_data.csv'):
+	# TODO: Find the best config by using multiple metrics
+	with open(file_name, mode = 'r') as summary_file :
+		fileContent	= csv.DictReader(summary_file)
+		metric_dict = {'cycles':[], 'au':[], 'power':[], 'maxBW':[], 'run_id':[]}
+		norm_dict = {'cycles':[], 'au':[], 'power':[], 'maxBW':[], 'run_id':[],\
+		 'weighed_value':[]}
+		for data in fileContent:
+			metric_dict['run_id'].append(data['run'])
+			metric_dict['cycles'].append(float(data[' Cycles for compute'].strip()))
+			metric_dict['au'].append(float(data[' Average utilization'].strip()))
+			metric_dict['power'].append(float(data[' Power consumed'].strip()))
+			maxBW = max([float(data[' DRAM IFMAP Read BW'].strip()),\
+						float(data[' DRAM Filter Read BW'].strip()),\
+						float(data[' DRAM OFMAP Write BW'].strip())])
+			metric_dict['maxBW'].append(maxBW)
+		norm_dict['run_id'].extend(metric_dict['run_id'])
+		norm_dict['cycles'] = norm_func(metric_dict['cycles'])
+		norm_dict['au'] = norm_func(metric_dict['au'])
+		norm_dict['power'] = norm_func(metric_dict['power'])
+		norm_dict['maxBW'] = norm_func(metric_dict['maxBW'])
+		# print(norm_dict)
+
+		for ind in range(len(norm_dict['run_id'])):
+			weighed_metric = (norm_dict['cycles'][ind] * metric_weights['cycles']) +\
+								(norm_dict['au'][ind] * metric_weights['au']) +\
+								(norm_dict['power'][ind] * metric_weights['power']) +\
+								(norm_dict['maxBW'][ind] * metric_weights['maxBW'])
+
+			norm_dict['weighed_value'].append(weighed_metric)
+			# print(norm_dict['run_id'][ind], weighed_metric)
+		# best_config= str(min([float(x[' Cycles for compute'].strip()) for x in fileContent]))
+		best_config= min(norm_dict['weighed_value'], default=0)
+		bc_index = norm_dict['weighed_value'].index(best_config)
+		print(best_config, bc_index, norm_dict['run_id'][bc_index])
+		print("Best config_details using norm:\n" +
+			"Run_name\t\t\t:  " + metric_dict['run_id'][bc_index] + "\n" +
+			"Average Utilization(%)\t\t: " + str(metric_dict['au'][bc_index]) + "\n" +
+			"Total Cycles for compute\t: " + str(metric_dict['cycles'][bc_index]) + "\n" +
+			"Power consumed\t\t\t: " + str(metric_dict['power'][bc_index]) + "\n" +
+			"Max BW\t\t\t\t: " + str(metric_dict['maxBW'][bc_index]) + "\n"
+			# "DRAM IFMAP Read BW\t\t: " + best_config[' DRAM IFMAP Read BW'] + "\n" +
+			# "DRAM Filter Read BW\t\t: " + best_config[' DRAM Filter Read BW'] + "\n" +
+			# "DRAM OFMAP Write BW\t\t: " + best_config[' DRAM OFMAP Write BW'] + "\n"
+			)
+	return best_config 
+
 def find_best_config(file_name=''):
 	# TODO: Find the best config by using multiple metrics
 	with open(file_name, mode = 'r') as summary_file :
@@ -172,9 +240,16 @@ def main(argv):
 									dir_content=dir_content
 									)
 
+	# Find Best configuration
+	file_name = analysis_folder + 'run_summary.csv'
+	best_config = find_best_config(file_name=file_name)
+
+	# Find best configuration using norm method
+	file_name = analysis_folder + 'run_summary.csv'
+	best_config_norm = find_best_config_norm(file_name=file_name)
 
 	root_dir = './outputs/'
-	exp_folder_name = 'bigLittleArch_outputs_short_pm_scaling'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws_scaling'
 	# Analysis file location
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	exp_dir = root_dir + exp_folder_name + '/'
@@ -186,13 +261,9 @@ def main(argv):
 									dir_content=dir_content
 									)
 
-	# Find Best configuration
-	file_name = analysis_folder + 'run_summary.csv'
-	best_config = find_best_config(file_name=file_name)
-
-
-
-	# Generate a plot for effect of scaling
+	'''
+	Generate a plot for effect of scaling
+	'''
 	figName = 'outputs/figures/effect_of_scaling_net_comb_ws.png'
 	file_name = analysis_folder + 'run_summary.csv'
 	run_names, cycles = effect_of_scaling_net(file_name=file_name,\
@@ -235,7 +306,10 @@ def main(argv):
 		format= 'png', orientation = "landscape", dpi= 300)
 	pyplot.close(fig=None)
 
-	# Draw a scatter plot of computational cycles for the experiment
+
+	'''
+	Draw a scatter plot of computational cycles for the experiment
+	'''
 	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws'
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	file_name = analysis_folder + 'run_summary.csv'
