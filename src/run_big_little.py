@@ -11,6 +11,9 @@ import glob # Unix style pathname  pattern expansion
 import fnmatch # Unix file name pattern matching
 import subprocess
 import time
+from absl import app
+
+import parallel_runs as parallel_runs
 
 scaleOut = False
 if scaleOut:
@@ -21,22 +24,8 @@ else:
 	div_base = 1
 
 origin_dir = ".";
-# Copy all topology filenames into a list
 topology_files	= []
-# topology_dir 	= origin_dir + "/topologies/mlperf/"
-# topology_dir_content 	= listdir(topology_dir)
-# for file in topology_dir_content:
-# 	if (fnmatch.fnmatch(file, "AlphaGoZero.csv") \
-# 		| fnmatch.fnmatch(file, "DeepSpeech2.csv") \
-# 		| fnmatch.fnmatch(file, "FasterRCNN.csv") \
-# 		| fnmatch.fnmatch(file, "NCF_recommendation_short.csv") \
-# 		| fnmatch.fnmatch(file, "Resnet50.csv") \
-# 		| fnmatch.fnmatch(file, "Sentimental_seqCNN.csv") \
-# 		| fnmatch.fnmatch(file, "Transformer_short.csv") ) == True: 
-# 		topology_files.append(file)
-
 type_of_run="short_model_scaling"
-
 # Create config files
 if type_of_run=="short_model":
 	file = 'alexnet_short.csv'
@@ -91,59 +80,54 @@ for file in config_dir_content:
 			| fnmatch.fnmatch(file, "scale.cfg")) == False: # To avoid csv files not used in SCALE-Sim paper
 			config_files.append(file)
 
-# if debug == True :
-# 	print(config_files)
+def main(argv):
+	'''
+	Generate config files
+	'''
+	origin_dir = "."
+	config_dir = origin_dir + "/configs/big_little_SA/"
 
-# run scale sim for different conmbinations.
-# topology_files and config_files are the lists that contain names of the topology and config_files respectively.
-topology_dir 	= origin_dir + "/topologies/conv_nets/"
-config_dir		= origin_dir + "/configs/"
-run_count 		= 1
-processes = set() # Parallel processes
-max_parallel_processes = min((os.cpu_count()-4),30)  # Maximum number of Parallel processes
-for file in topology_files:
-	for second_ad_index, second_array_dim in enumerate(second_array_dim_list):
-		for dataflow in dataflow_list:
-			for ad_index, array_dim in enumerate(array_dim_list):
-				config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + str(second_array_dim[0]) + "_" + str(second_array_dim[1]) + "_" + dataflow
-				config_file_full_name = config_dir + config_file_name + ".cfg"
-				topology_file_name	= topology_dir + topo_sub_folder[ad_index]
-				topology_file_full_name	= topology_file_name + file 
-				# scale_sim_command = "python ./scale.py -arch_config=" + config_file_full_name + " -network=" + topology_file_full_name;
-				#scale_sim_command = ["df", "-h", "/home"]
-				all_outputs_dir = "../../../"
-				arch_config = "-arch_config=../../../" + config_file_full_name
-				arch_network = "-network=../../../" + topology_file_full_name
-				scale_sim_command = ["python", "../../../scale.py", arch_config, arch_network] 
-				if debug == True:
-					print(scale_sim_command)
-				print("INFO:: run_count:" + str(run_count))
+	topology_files	= []
+	file = 'alexnet_short_8times.csv'
+	topology_files.append(file)
 
-				# os.system(scale_sim_command)
-				output_top_folder = 'bigLittleArch_outputs_short_pm_ws_scaling/'
-				if not os.path.exists(origin_dir + "/outputs/" + output_top_folder):
-					os.system("mkdir " + origin_dir + "/outputs/" + output_top_folder)
-				output_file_dir = origin_dir + "/outputs/" + output_top_folder + config_file_name
-				if not os.path.exists(output_file_dir):
-					os.system("mkdir " + output_file_dir)
-				else:
-					t = time.time()
-					new_output_file_dir= output_file_dir + "_" + str(t)
-					os.system("mv " + output_file_dir + " " + new_output_file_dir)
-					os.system("mkdir " + output_file_dir)
-				os.system("cd " + output_file_dir)
-				print(os.system("pwd"))
-				std_out_file = open(output_file_dir + '/' + config_file_name +'.txt', mode='w+')
-				processes.add(subprocess.Popen(scale_sim_command, cwd=output_file_dir, stdout=std_out_file))
-				std_out_file.close()
-				if(len(processes) >= max_parallel_processes ):
-					os.wait()
-					processes.difference_update([\
-						p for p in processes if p.poll() is not None])
-				os.system("cd ../../../")
+	dataflow_list = ["os", "ws", "is"]
 
-				run_count = run_count +1;
+	array_dim_list=[[], []]
+	array_dim_list[0] = [[16,64], [8,128], [4,256], [32,32], [256,4], [128,8], [64,16]]
+	array_dim_list[1] = [[4,16], [8,8], [16,4]]
 
-for p in processes:
-	if p.poll() is None:
-		p.wait()
+	div_base = 1
+
+	## config gen function calling
+	parallel_runs.gen_config_files(dataflow_list=dataflow_list,
+							array_dim_list=array_dim_list,
+							config_dir=config_dir,
+							div_base=div_base)
+
+
+	'''
+	Run parallel SCALE-Sim runs
+	'''
+	origin_dir = "./"
+	topology_dir = origin_dir + "/topologies/conv_nets/"
+	config_dir = origin_dir + "/configs/big_little_SA/"
+	output_dir = 'outputs/big_little_SA_alexnet_sd_by_8_times/'
+	max_parallel_processes = min((os.cpu_count()- 2),30)  # Maximum number of Parallel processes
+	# Copy all config file names
+	config_files_list = []
+	config_dir_content = listdir(config_dir)
+	config_files_list = [(config_dir + "/./" + x) for x in config_dir_content]
+
+	# Copy all topology file names
+	topology_files	= []
+	file = 'alexnet_short_8times.csv'
+	topology_files.append(file)
+	toplogy_file_list = [(topology_dir + "/./" + x) for x in topology_files]
+
+	parallel_runs.parallel_runs(config_files_list=config_files_list,\
+								topology_files_list=toplogy_file_list,\
+								output_dir=output_dir,\
+								max_parallel_runs=max_parallel_processes)
+if __name__ == "__main__":
+	app.run(main)
