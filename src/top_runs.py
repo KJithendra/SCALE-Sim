@@ -20,6 +20,7 @@ from absl import flags
 from absl import app
 
 import parallel_runs as parallel_runs
+import big_little_analysis as bl_analysis
 
 FLAGS = flags.FLAGS
 flags.DEFINE_string('type_of_run', 'bl_effect_of_scaling', 'The testing function that needs to be executed')
@@ -139,10 +140,9 @@ def single_sa_reactangle_sa():
 
 def single_sa_scale_out_square_sa():
 	r'''
-		Perform SCALE-Sim with Systolic arrays(SA) in Square dimensions. The dimesions are increased in scale-out method
-		``This is a testing function ``
+		* Perform SCALE-Sim with Systolic arrays(SA) in Square dimensions. The dimesions are increased in scale-out method
+		"This is a testing function"
 		Consists only one SA
-
 		Examples:
 			>>> single_sa_reactangle_sa() 
 	'''
@@ -151,11 +151,13 @@ def single_sa_scale_out_square_sa():
 
 def big_little_sa():
 	r'''
-		Perform SCALE-Sim runs with big little Systolic arrays(SA).
-		``This is a testing function ``
-		Consists only two systolic arrays
-		Used for experimenting to find the best bigLittle configuratio for a neural Network, given a fixed number of processing elements
-		
+		* Perform SCALE-Sim runs with big little Systolic arrays(SA).
+		* "This is a testing function"
+		* Consists only two systolic arrays
+		* Used for experimenting to find the best bigLittle configuratio for a neural Network, given a fixed number of processing elements
+		* It also creates summary files layerwise, oveall network summary.
+		* Finds the weighted metric for all runs and stores these results into a file.T This is also plotted as a scatter plot
+		* Finds out best config 
 		Examples:
 			>>> big_little_sa() 
 	'''
@@ -209,13 +211,56 @@ def big_little_sa():
 								output_dir=output_dir,\
 								max_parallel_runs=max_parallel_processes)
 
+	root_dir = './outputs/'
+	exp_folder_name = 'big_little_SA_alexnet_sd_by_8_times'
+	# Analysis file location
+	analysis_folder = root_dir + "/./analysis/" + exp_folder_name + '/'
+	exp_dir = root_dir + exp_folder_name + '/'
+	dir_content = listdir(exp_dir)
+	# print(dir_content)
+	# Create summary files
+	bl_analysis.create_layer_wise_summary(	analysis_folder=analysis_folder,
+									exp_dir=exp_dir,
+									dir_content=dir_content
+									)
+	# Find best configuration using norm method
+	file_name = analysis_folder + 'run_summary.csv'
+	best_config_norm = bl_analysis.find_best_config_norm(file_name=file_name,\
+			 metric_weights={'cycles':0.5, 'au':0.25, 'power':0.125, 'maxBW':0.125})
+
+	'''
+	Draw a scatter plot of weighed metric  for the experiment
+	'''
+	exp_folder_name = '.'
+	analysis_folder = root_dir + "analysis/" + '/'
+	file_name = analysis_folder + 'norm_data.csv'
+	print(file_name)	
+	run_ids, wm_list = bl_analysis.get_compute_cycles_list(file_name=file_name, field_y_axis=' weighed_metric')
+
+	fig, axes = pyplot.subplots()
+	figName = 'outputs/figures/scatter_plot_exp_ws_weighed_metric_2.png'
+	color = '#4F81BD'
+	axes.scatter(run_ids, wm_list, marker='o', color=color)
+	axes.set_xlabel('Run name')
+	axes.set_ylabel('Weighed metric', color=color)
+	axes.set_title('Weighed metric vs run name')
+	axes.tick_params(axis='y', labelcolor=color)
+	axes.tick_params(axis='x', rotation=90, labelsize=6)
+	axes.grid(True)
+	fig.tight_layout()
+	pyplot.savefig(figName, transparent = False, \
+		format= 'png', orientation = "landscape", dpi= 300)
+	pyplot.close(fig=None)
+
+
 def big_little_sa_effect_of_scaling_nn():
 	r'''
-		Perform SCALE-Sim runs with big little Systolic arrays(SA).
-		``This is a testing function ``
-		Consists only two systolic arrays
-		Used for experimenting to find the effect of scaling the Network on performance
-		
+		* Perform SCALE-Sim runs with big little Systolic arrays(SA).
+		* "This is a testing function"
+		* Consists only two systolic arrays
+		* Used for experimenting to find the effect of scaling the Network on performance
+		* It also creates summary files layerwise, oveall network summary.
+		* Plots compute cycles vs run_ids and FLOPs vs run_ids on the same plot.
 		Examples:
 			>>> big_little_sa() 
 	'''
@@ -266,6 +311,67 @@ def big_little_sa_effect_of_scaling_nn():
 								topology_files_list=toplogy_file_list,\
 								output_dir=output_dir,\
 								max_parallel_runs=max_parallel_processes)
+	
+
+	root_dir = './outputs/'
+	exp_folder_name = 'big_little_SA_effect_of_scaling_alexnet'
+	# Analysis file location
+	analysis_folder = root_dir + "/./analysis/" + exp_folder_name + '/'
+	exp_dir = root_dir + exp_folder_name + '/'
+	dir_content = listdir(exp_dir)
+	# print(dir_content)
+	# Create summary files
+	bl_analysis.create_layer_wise_summary(	analysis_folder=analysis_folder,
+									exp_dir=exp_dir,
+									dir_content=dir_content
+									)
+
+	'''
+	Generate a plot for effect of scaling
+	'''
+	figName = 'outputs/figures/effect_of_scaling_net_comb_ws.png'
+	file_name = analysis_folder + 'run_summary.csv'
+	run_names, cycles = bl_analysis.effect_of_scaling_net(file_name=file_name,\
+								field_y_axis=' Cycles for compute')
+	
+	fig, axes = pyplot.subplots()
+	color = '#4F81BD'
+	axes.plot(run_names, cycles, marker='o', color=color)
+	axes.set_xlabel('Scale down factor')
+	axes.set_ylabel('Clock cycles', color=color)
+	axes.set_title('Effect of scaling net')
+	axes.tick_params(axis='y', labelcolor=color)
+
+
+	# Calculate FLOPS for different networks
+	topology_files = ['alexnet_short_8times.csv', 'alexnet_short_10times.csv', \
+	'alexnet_short_6times.csv', 'alexnet_short_4times.csv', \
+	'alexnet_short_1times.csv','alexnet_short_2times.csv', 'alexnet_short_12times.csv']
+	topology_files.sort()
+	topology_dir = './topologies/conv_nets/'
+	flops =[]
+	run_names =[]
+	for ind, file in enumerate(topology_files):
+		topology_file = topology_dir + file
+		flops_run = bl_analysis.calc_flops(topology_file=topology_file)
+		flops.append(flops_run)
+		run_names.append(int(file[:-4].split('_')[2][:-5]))
+		print(run_names[ind],":", flops[ind])
+
+	run_names, flops = zip(*sorted(zip(run_names,flops)))
+
+	axes2 = axes.twinx()
+	color = '#9F4C7C'
+	axes2.plot(run_names, flops, marker='*', color=color)
+	axes2.set_ylabel('FLOPs', color = color)
+	axes2.tick_params(axis='y', labelcolor=color)
+	axes2.grid(True)
+	fig.tight_layout()
+	pyplot.savefig(figName, transparent = False, \
+		format= 'png', orientation = "landscape", dpi= 300)
+	pyplot.close(fig=None)
+
+
 
 def experiment_to_be_executed():
 	r'''
