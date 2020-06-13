@@ -9,5 +9,5 @@ configs/*
 !configs/google.cfg
 !configs/scale.cfg
 !configs/eyeris.cfg
-
+!configs/big_little_sa.cfg
 *.tar.gz

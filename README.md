@@ -124,6 +124,25 @@ There are three summary logs:
 
 In addition cycle accurate SRAM/DRAM access logs are also dumped and could be accesses at ```./outputs/<topology_name>/layer_wise```
 
+### Run Big Little SCALE-Sim run
+Big Little SCALE-Sim run can be executed in same way as that of the original SCALE-Sim command mentioned before. Only difference is that the config file should have data for both big and little Systoloic arrays(SA).
+* Run the command: ```python scale.py -arch_config=configs/big_little_sa.cfg```
+* Wait for the run to finish
+
+### Run an experiment with parallel execution of SCALE-Sim commands
+One can generate config files for a particular experiment and run multiple SCALE-Sim commands using the functions defined in ```src/parallel_runs.py```. Some of the experiments, which are very useful for the Exploration of good SA Dimensions for various networks, can be found in ```src/top_runs.py``` as functions.
+
+One can run these functions using the following command
+* ```python run_exp.py -type_of_run=bl_best_config```
+* The different values allowed for ```type_of_run``` flag are mentioned below:
+	1. ```scale_up_square_sa :``` Executes an experiment of SCALE-Sim runs for various neural networks(NN) on various scaled-up systolic arrays(SA)
+	2. ```rectangular_sa :``` Executes an experiment of SCALE-Sim runs for various neural networks(NN) on various reactangular shaped systolic arrays(SA)
+	3. ```scale_out_square_sa:``` Executes an experiment of SCALE-Sim runs for various neural networks(NN) on various scaled-out systolic arrays(SA)
+	4. ```bl_best_config:``` Executes an experiment of SCALE-Sim runs to find a best big-little SA for a particular neural networks(NN).
+	5. ```bl_effect_of_scaling:``` Executes an experiment of SCALE-Sim runs to find the effect of scaling down the neural network(NN) size on the performance.
+
+
+
 ### Detailed Documentation
 
 For detailed insights on working of SCALE-Sim, you can refer to this [paper](https://arxiv.org/abs/1811.02883)
