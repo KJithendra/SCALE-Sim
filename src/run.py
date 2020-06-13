@@ -19,51 +19,33 @@ scaleOut = False
 if scaleOut:
 	topo_sub_folder = ['./', 'div4q/', 'div16q/', 'div64q/', 'div256q/']
 	div_base = 2
-else:
-	topo_sub_folder = ['./', './', './', './', './', './', './', './', './']
-	div_base = 1
 
-origin_dir = ".";
-# Copy all topology filenames into a list
-topology_files	= ["AlphaGoZero.csv", "DeepSpeech2.csv",\
-					"FasterRCNN.csv", "NCF_recommendation_short.csv",\
-					"Resnet50.csv", "Sentimental_seqCNN.csv",\
-					"Transformer_short.csv"]
-topology_dir 	= origin_dir + "/topologies/mlperf/"
-
-# Create config files
-dataflow_list	= ["os", "ws", "is"]
 if scaleOut:
-	array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
-else:
-	array_dim_list	= [[8,2048], [16,1024], [32,512], [64,256], [128,128], [256,64], [512,32], [1024,16], [2048,8]]
-
-config_dir		= origin_dir + "/configs/scale_up_rectangle_SA/"
-if not os.path.exists(config_dir):
-	os.system("mkdir -p " + config_dir)
-for dataflow in dataflow_list:
-	for ad_index, array_dim in enumerate(array_dim_list):
-		config_file_name = str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + dataflow
-		config_file_full_name = config_dir + '/./' + config_file_name + ".cfg"
-		# if debug == True :
-		# 	print(config_file_name)
-		config_file = open(config_file_full_name, "w")
-		lines = ["[general]" + "\n",\
-		"run_name = " + "\"" +config_file_name + "\"" +"\n\n",\
-		"[architecture_presets]\n",\
-		"ArrayHeight:    " + str(int(array_dim[0]/(div_base**ad_index))) + "\n",\
-		"ArrayWidth:     " + str(int(array_dim[1]/(div_base**ad_index))) + "\n",\
-		"IfmapSramSz:    512" + "\n",\
-		"FilterSramSz:   512" + "\n",\
-		"OfmapSramSz:    256" + "\n",\
-		"IfmapOffset:    0" + "\n",\
-		"FilterOffset:   10000000" + "\n",\
-		"OfmapOffset:    20000000" + "\n",\
-		"Dataflow:       " + dataflow + "\n"]
-		config_file.writelines(lines)
-		config_file.close()
+	array_dim_list = [[8,8], [16,16], [32,32], [64,64], [128,128]]
+	
 
 def main(argv):
+	'''
+	Generate config files
+	'''
+	origin_dir = "."
+	config_dir = origin_dir + "/configs/scale_up_rectangle_SA/"
+
+	dataflow_list = ["os", "ws", "is"]
+
+	array_dim_list=[]
+	array_dim_list	= [[8,2048], [16,1024], [32,512], [64,256], [128,128], \
+						[256,64], [512,32], [1024,16], [2048,8]]
+
+	div_base = 1
+
+	## config gen function calling
+	parallel_runs.gen_config_files_single_SA(dataflow_list=dataflow_list,
+							array_dim_list=array_dim_list,
+							config_dir=config_dir,
+							div_base=div_base)
+
+
 	'''
 	Run parallel SCALE-Sim runs
 	'''

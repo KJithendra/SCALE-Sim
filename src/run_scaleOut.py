@@ -35,11 +35,14 @@ for file in topology_dir_content:
 # Create config files
 dataflow_list	= ["os", "ws", "is"]
 array_dim_list	= [[8,8], [16,16], [32,32], [64,64], [128,128]]
-config_dir		= origin_dir + "/configs/"
+config_dir		= origin_dir + "/./configs/scale_out_square_SA/"
+if not os.path.exists(config_dir):
+	os.system("mkdir -p " + config_dir)
 for file in topology_files:
 	for dataflow in dataflow_list:
 		for ad_index, array_dim in enumerate(array_dim_list):
-			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + dataflow
+			config_file_name = file[0:len(file)-4] + "_" + str(array_dim[0]) \
+			+ "_" + str(array_dim[1]) + "_" + dataflow
 			config_file_full_name = config_dir + config_file_name + ".cfg"
 			# if debug == True :
 			# 	print(config_file_name)
@@ -75,7 +78,7 @@ for file in config_dir_content:
 # run scale sim for different conmbinations.
 # topology_files and config_files are the lists that contain names of the topology and config_files respectively.
 topology_dir 	= origin_dir + "/topologies/mlperf/"
-config_dir		= origin_dir + "/configs/"
+config_dir		= origin_dir + "/./configs/scale_out_square_SA/"
 run_count 		= 1
 processes = set() # Parallel processes
 max_parallel_processes = min((os.cpu_count()-1),30) # Maximum number of Parallel processes
@@ -98,11 +101,9 @@ for file in topology_files:
 			print("INFO:: run_count:" + str(run_count))
 
 			# os.system(scale_sim_command)
-			if not os.path.exists(origin_dir + "/outputs/all_outputs/"):
-				os.system("mkdir " + origin_dir + "/outputs/all_outputs/")
 			output_file_dir = origin_dir + "/outputs/all_outputs/" + config_file_name
 			if not os.path.exists(output_file_dir):
-				os.system("mkdir " + output_file_dir)
+				os.system("mkdir -p " + output_file_dir)
 			else:
 				t = time.time()
 				new_output_file_dir= output_file_dir + "_" + str(t)

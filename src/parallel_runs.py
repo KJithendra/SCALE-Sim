@@ -68,20 +68,20 @@ def parallel_runs(	config_files_list=[],
 		if p.poll() is None:
 			p.wait()
 
-# Function to create all config files
 def gen_config_files(   dataflow_list=[],\
 						array_dim_list=[[],[]],\
 						config_dir='',\
 						div_base=1 ):
 	r'''
-	Generates config_files for all combinations of the parameter values
+	Generates config_files for all combinations of the values in the list parameters for bigLittle Systollic Array(SA)
 
 	Args:
 		dataflow_list: List of all dataflows. Possible entries-'os', 'ws' and 'is'
-		array_dim_list: List of 2 lists(first for big Array and the second for little SA). Each list consists a set of lists whose values are height and width of systolic array
+		array_dim_list: List of 2 lists(first for big Array and the second for little SA). Each list consists more lists, each with height and width of systolic array as its elements
 		config_dir: The directory path where config files need to be stored
 		div_base: Used for imply the effect of Scale-out opeartion. Array dimensions are scaled down by a factor of (div_base^x)
-	
+			1. div_base = 1 for scale-Up
+			2. div_base = 2 for scale-Out	
 	Examples:
 		>>> gen_config_files(dataflow_list=['os','is'],\
 						array_dim_list=[[[16,16],[32,16]],[[8,8],[16,4]]],\
@@ -118,6 +118,50 @@ def gen_config_files(   dataflow_list=[],\
 				config_file.writelines(lines)
 				config_file.close()
 
+
+def gen_config_files_single_SA(   dataflow_list=[],\
+						array_dim_list=[],\
+						config_dir='',\
+						div_base=1 ):
+	r'''
+	Generates config_files for all combinations of the values in the list parameters for Single Systollic Array(SA)
+
+	Args:
+		dataflow_list: List of all dataflows. Possible entries:'os', 'ws' and 'is'
+		array_dim_list: List of lists, each list with height and width of systolic array as its elements
+		config_dir: The directory path where config files need to be stored
+		div_base: Used for imply the effect of Scale-out opeartion. Array dimensions are scaled down by a factor of (div_base^x)
+			1. div_base = 1 for scale-Up
+			2. div_base = 2 for scale-Out
+	
+	Examples:
+		>>> gen_config_files(dataflow_list=['os','is'],\
+						array_dim_list=[[16,16],[32,16]],\
+						config_dir='name_of_output_directory',\
+						div_base=1 )
+
+	'''
+	if not os.path.exists(config_dir):
+		os.system("mkdir -p " + config_dir)
+	for dataflow in dataflow_list:
+		for ad_index, array_dim in enumerate(array_dim_list):
+			config_file_name = str(array_dim[0]) + "_" + str(array_dim[1]) + "_" + dataflow
+			config_file_full_name = config_dir + '/./' + config_file_name + ".cfg"
+			config_file = open(config_file_full_name, "w")
+			lines = ["[general]" + "\n",\
+			"run_name = " + "\"" +config_file_name + "\"" +"\n\n",\
+			"[architecture_presets]\n",\
+			"ArrayHeight:    " + str(int(array_dim[0]/(div_base**ad_index))) + "\n",\
+			"ArrayWidth:     " + str(int(array_dim[1]/(div_base**ad_index))) + "\n",\
+			"IfmapSramSz:    512" + "\n",\
+			"FilterSramSz:   512" + "\n",\
+			"OfmapSramSz:    256" + "\n",\
+			"IfmapOffset:    0" + "\n",\
+			"FilterOffset:   10000000" + "\n",\
+			"OfmapOffset:    20000000" + "\n",\
+			"Dataflow:       " + dataflow + "\n"]
+			config_file.writelines(lines)
+			config_file.close()
 
 def main(argv):
 	'''
