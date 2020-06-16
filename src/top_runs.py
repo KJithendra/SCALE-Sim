@@ -238,7 +238,7 @@ def big_little_sa():
 	run_ids, wm_list = bl_analysis.get_compute_cycles_list(file_name=file_name, field_y_axis=' weighed_metric')
 
 	fig, axes = pyplot.subplots()
-	figName = 'outputs/figures/scatter_plot_exp_ws_weighed_metric_2.png'
+	figName = 'outputs/figures/scatter_plot_of_weighted_metrics.png'
 	color = '#4F81BD'
 	axes.scatter(run_ids, wm_list, marker='o', color=color)
 	axes.set_xlabel('Run name')

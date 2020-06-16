@@ -166,7 +166,7 @@ def find_best_config_norm(file_name,
 		for data in fileContent:
 			metric_dict['run_id'].append(data['run'])
 			metric_dict['cycles'].append(float(data[' Cycles for compute'].strip()))
-			metric_dict['au'].append(float(data[' Average utilization'].strip()))
+			metric_dict['au'].append(100/float(data[' Average utilization'].strip()))
 			metric_dict['power'].append(float(data[' Power consumed'].strip()))
 			maxBW = max([float(data[' DRAM IFMAP Read BW'].strip()),\
 						float(data[' DRAM Filter Read BW'].strip()),\
@@ -393,6 +393,7 @@ def main(argv):
 
 	run_names, flops = zip(*sorted(zip(run_names,flops)))
 
+	# Plot flops for each run
 	axes2 = axes.twinx()
 	color = '#9F4C7C'
 	axes2.plot(run_names, flops, marker='*', color=color)
