@@ -4,6 +4,9 @@ import sram_traffic_os as sram
 import sram_traffic_ws as sram_ws
 import sram_traffic_is as sram_is
 
+
+import datetime
+
 def gen_all_traces(
         array_h_first = 4,
         array_w_first = 4,
@@ -47,7 +50,8 @@ def gen_all_traces(
     dram_filter_trace_file_second = "dram_sram1_filter_read.csv"
     dram_ifmap_trace_file_second = "dram_sram1_ifmap_read.csv"
     dram_ofmap_trace_file_second = "dram_sram1_ofmap_write.csv"
-
+    
+    sram_traces_start_time = datetime.datetime.now()
     print("Generating traces and bw numbers")
     if data_flow == 'os':
 
@@ -382,6 +386,11 @@ def gen_all_traces(
         else:
            sram_cycles_second = 0
 
+    sram_traces_end_time = datetime.datetime.now()
+    sram_traces_exec_time = sram_traces_end_time - sram_traces_start_time
+    print(f'Execution Time for generation of SRAM traces = {sram_traces_exec_time}')
+
+    dram_traces_start_time = datetime.datetime.now()
     #print("Generating DRAM traffic")
     if array_one_used == 1:
        if single_array == 1 or array_two_used == 0:
@@ -479,7 +488,11 @@ def gen_all_traces(
               dram_write_trace_file= dram_ofmap_trace_file_second
           )
 
+    dram_traces_end_time = datetime.datetime.now()
+    dram_traces_exec_time = dram_traces_end_time - dram_traces_start_time
+    print(f'Execution Time for generation of DRAM traces = {dram_traces_exec_time}')
 
+    cycles_cal_start_time = datetime.datetime.now()
     # Selvaraj: Merge both DRAM traffic CSV's for BW calculations
     if array_one_used == 1 and array_two_used == 1:
        sram_controller(dram_ifmap_trace_file_first,dram_ifmap_trace_file_second,dram_ifmap_trace_file)
@@ -501,8 +514,13 @@ def gen_all_traces(
     print("Average utilization : \t"  + str(util) + " %")
     print("Cycles for compute  : \t"  + str(sram_cycles) + " cycles")
     print("Power consumed      : \t"  + str(power_metric) + " Mega-units")
+    
+    cycles_cal_end_time = datetime.datetime.now()
+    cycles_cal_exec_time = cycles_cal_end_time - cycles_cal_start_time
+    print(f'Execution Time for Calculation of cycles, ARU and Power = {cycles_cal_exec_time}')
 
 
+    calc_bw_num_start_time = datetime.datetime.now()
     if single_array == 1:   # SCALE-Sim used as a single compute array simulator
        bw_numbers, detailed_log  = gen_bw_numbers(both_array_used = 0,array_one_idle = 0,array_two_idle = 0,dram_ifmap_trace_file = dram_ifmap_trace_file,dram_filter_trace_file =  dram_filter_trace_file, #Selvaraj: Add support for two SRAM based BW generation after DRAM merge
                                     dram_ofmap_trace_file = dram_ofmap_trace_file,sram_write_trace_file_first =  sram_write_trace_file_first,
@@ -529,7 +547,11 @@ def gen_all_traces(
                                     sram_read_trace_file_second = sram_read_trace_file_second)
                                     #array_h, array_w)
 
+    calc_bw_num_end_time = datetime.datetime.now()
+    calc_bw_num_exec_time = calc_bw_num_end_time - calc_bw_num_start_time
+    print(f'Execution Time for Calculation of Bandwidth numbers = {calc_bw_num_exec_time}')
 
+    print("Generation of  traces and bw numbers finished")
     return bw_numbers, detailed_log, util, str(sram_cycles), array_one_used, array_two_used, power_metric
 
 

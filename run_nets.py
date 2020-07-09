@@ -2,6 +2,7 @@ import trace_gen_wrapper as tg
 import os
 import subprocess
 
+import datetime
 
 def run_net( ifmap_sram_size_first=1,
              filter_sram_size_first=1,
@@ -112,6 +113,7 @@ def run_net( ifmap_sram_size_first=1,
         max_bw_log = bw_log
         detailed_log = name + ",\t"
 
+        gen_traces_start_time = datetime.datetime.now()
         bw_str, detailed_str, util, clk, array_one_used, array_two_used, power_metric =  \
             tg.gen_all_traces(  array_h_first = array_h_first,
                                 array_w_first = array_w_first,
@@ -150,7 +152,10 @@ def run_net( ifmap_sram_size_first=1,
 
         detailed_log += detailed_str
         detail.write(detailed_log + "\n")
-
+        
+        gen_traces_end_time = datetime.datetime.now()
+        gen_traces_exec_time = gen_traces_end_time - gen_traces_start_time
+        print(f'Execution Time for generation of traces = {gen_traces_exec_time}')
         if single_array == 1:
            both_array_used = 0
            array_two_idle = 0
@@ -167,7 +172,8 @@ def run_net( ifmap_sram_size_first=1,
               array_one_idle = 0
            else:
               array_one_idle = 1
-
+        
+        gen_max_bw_start_time = datetime.datetime.now()
         max_bw_log += tg.gen_max_bw_numbers(
                                 both_array_used = both_array_used,
                                 array_one_idle = array_one_idle,
@@ -182,6 +188,10 @@ def run_net( ifmap_sram_size_first=1,
                                 )
 
         maxbw.write(max_bw_log + "\n")
+        
+        gen_max_bw_end_time = datetime.datetime.now()
+        gen_max_bw_exec_time = gen_max_bw_end_time - gen_max_bw_start_time
+        print(f'Execution Time for generation of maximul BW = {gen_max_bw_exec_time}')
 
         # Anand: This is not needed, sram_traffic() returns this
         #last_line = subprocess.check_output(["tail","-1", net_name + "_" + name + "_sram_write.csv"] )

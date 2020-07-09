@@ -2,6 +2,7 @@ import os.path
 import math
 from tqdm import tqdm
 
+import datetime
 
 def prune(input_list):
     l = []
@@ -22,6 +23,8 @@ def dram_trace_read_v2(
         sram_trace_file = "sram_log.csv",
         dram_trace_file = "dram_log.csv"
     ):
+    
+    dram_traces_read_start_time = datetime.datetime.now()
 
     t_fill_start    = -1
     t_drain_start   = 0
@@ -99,6 +102,10 @@ def dram_trace_read_v2(
 
     sram_requests.close()
     dram.close()
+    
+    dram_traces_read_end_time = datetime.datetime.now()
+    dram_traces_read_exec_time = dram_traces_read_end_time - dram_traces_read_start_time
+    print(f'Execution Time for generation of DRAM read traces = {dram_traces_read_exec_time}')
 
 
 def dram_trace_write(ofmap_sram_size = 64,
@@ -106,7 +113,9 @@ def dram_trace_write(ofmap_sram_size = 64,
                      default_write_bw = 10,                     # this is arbitrary
                      sram_write_trace_file = "sram_write.csv",
                      dram_write_trace_file = "dram_write.csv"):
-
+    
+    dram_traces_write_start_time = datetime.datetime.now()
+    
     traffic = open(sram_write_trace_file, 'r')
     trace_file  = open(dram_write_trace_file, 'w')
 
@@ -204,6 +213,10 @@ def dram_trace_write(ofmap_sram_size = 64,
     #All traces done
     traffic.close()
     trace_file.close()
+    
+    dram_traces_write_end_time = datetime.datetime.now()
+    dram_traces_write_exec_time = dram_traces_write_end_time - dram_traces_write_start_time
+    print(f'Execution Time for generation of DRAM write traces = {dram_traces_write_exec_time}')
 
 if __name__ == "__main__":
     dram_trace_read_v2(min_addr=0, max_addr=1000000, dram_trace_file="ifmaps_dram_read.csv")

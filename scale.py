@@ -226,7 +226,7 @@ class scale:
                 self.run_once()
 
 def main(argv):
-    s = scale(save = True, sweep = False)
+    s = scale(save = False, sweep = False)
     s.run_scale()
 
 if __name__ == '__main__':

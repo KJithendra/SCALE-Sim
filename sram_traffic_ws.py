@@ -1,6 +1,7 @@
 import math 
 from tqdm import tqdm
 
+import datetime
 
 def sram_traffic(
         dimension_rows=4,
@@ -64,7 +65,7 @@ def sram_traffic(
     for px in range(int(e2)):         #number of ofmap px in a ofmap channel
         addr = (px / E_w) * strides * hc + (px%E_w) * strides
         all_ifmap_base_addr.append(addr)
-
+    sram_trace_exec_time_file  = open("sram_traffic_gen_traces.txt", 'a+')
     for v in tqdm(range(int(num_v_folds))):
         #print("V fold id: " + str(v))
             
@@ -83,6 +84,8 @@ def sram_traffic(
                 rows_this_fold = min(rem_h, dimension_rows) 
                 #print("h fold id: " + str(h))
 
+                filter_trace_start_time = datetime.datetime.now()
+
                 # Values returned
                 # cycles        -> Cycle count for the next operation ie. cycles elapsed + 1
                 # col_addr_list -> The starting filter address for the next iteration
@@ -94,6 +97,11 @@ def sram_traffic(
                                             sram_read_trace_file = sram_read_trace_file
                                             )
                 #print("Weights loaded by " + str(cycles) + " cycles")
+                filter_trace_end_time = datetime.datetime.now()
+                filter_trace_exec_time = filter_trace_end_time - filter_trace_start_time
+
+                ifmap_trace_start_time = datetime.datetime.now()
+
                 data_out_cycles     = cycles    #Store this cycle for parallel readout
                 cycles_ifmap            = gen_trace_ifmap_partial(
                                             cycle = cycles,
@@ -107,6 +115,12 @@ def sram_traffic(
                                             stride = strides, ifmap_base = ifmap_base,
                                             sram_read_trace_file = sram_read_trace_file
                                             )
+
+                ifmap_trace_end_time = datetime.datetime.now()
+                ifmap_trace_exec_time = ifmap_trace_end_time - ifmap_trace_start_time
+
+                ofmap_trace_start_time = datetime.datetime.now()
+
                 cycles_ofmap        = gen_trace_ofmap(
                                             cycle = data_out_cycles,
                                             num_rows = dimension_rows,
@@ -119,6 +133,11 @@ def sram_traffic(
                                             num_filter = num_filt, total_num_filter = total_num_filt, col_idx_base = col_idx_base,
                                             sram_write_trace_file = sram_write_trace_file
                                             ) 
+                
+                ofmap_trace_end_time = datetime.datetime.now()
+                ofmap_trace_exec_time = ofmap_trace_end_time - ofmap_trace_start_time
+                write_sting = str(filter_trace_exec_time) + ", " + str(ifmap_trace_exec_time) + ', ' + str(ofmap_trace_exec_time) + '\n'
+                sram_trace_exec_time_file.write(write_sting)
 
                 #print("IFMAPS processed by " + str(cycles) + " cycles")
                 util_this_fold = (rows_this_fold * cols_this_fold) /(dimension_rows * dimension_cols)
@@ -138,7 +157,9 @@ def sram_traffic(
 
             parallel_window = math.ceil(rem / dimension_cols)
             parallel_window = int(min(max_parallel_window, parallel_window))
-        
+
+            filter_trace_start_time = datetime.datetime.now()
+
             cycles_filter = gen_filter_trace(
                                 cycle = cycles,
                                 num_rows = dimension_rows, num_cols = dimension_cols,
@@ -148,6 +169,10 @@ def sram_traffic(
                                 filters_this_fold=cols_this_fold,
                                 sram_read_trace_file=sram_read_trace_file
                                 )
+            filter_trace_end_time = datetime.datetime.now()
+            filter_trace_exec_time = filter_trace_end_time - filter_trace_start_time
+
+            ifmap_trace_start_time = datetime.datetime.now() 
 
             cycles_ifmap, rows_this_fold\
                             = gen_ifmap_trace(
@@ -160,6 +185,12 @@ def sram_traffic(
                             sram_read_trace_file = sram_read_trace_file
                             )
 
+            ifmap_trace_end_time = datetime.datetime.now()
+            ifmap_trace_exec_time = ifmap_trace_end_time - ifmap_trace_start_time
+
+            ofmap_trace_start_time = datetime.datetime.now()
+
+
             cycles_ofmap = gen_trace_ofmap(
                             cycle = cycles_filter,
                             num_rows = dimension_rows, num_cols = dimension_cols,
@@ -171,6 +202,13 @@ def sram_traffic(
                             num_filter = num_filt, total_num_filter = total_num_filt, col_idx_base = col_idx_base,
                             sram_write_trace_file = sram_write_trace_file
                             )
+               
+            ofmap_trace_end_time = datetime.datetime.now()
+            ofmap_trace_exec_time = ofmap_trace_end_time - ofmap_trace_start_time
+            write_sting = str(filter_trace_exec_time) + ", " + str(ifmap_trace_exec_time) + ', ' + str(ofmap_trace_exec_time) + '\n'
+            sram_trace_exec_time_file.write(write_sting)
+
+
             cycles = max(cycles_ifmap, cycles_ofmap)
             del_cycl = cycles - prev_cycl
 
@@ -193,7 +231,8 @@ def sram_traffic(
             prev_cycl = cycles
 
         remaining_cols -= cols_this_fold
-
+    sram_trace_exec_time_file.write("\n\n")
+    sram_trace_exec_time_file.close()
     final = str(cycles)
     final_util = (util / compute_cycles) * 100
     #print("Compute finished at: " + str(final) + " cycles")

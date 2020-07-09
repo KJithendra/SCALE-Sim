@@ -325,7 +325,7 @@ def calc_flops(topology_file='./topologies/conv_nets/alexnet.csv'):
 
 def main(argv):
 	root_dir = './outputs/'
-	exp_folder_name = 'bigLittleArch_outputs_short_pm_ws'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm'
 	# Analysis file location
 	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 	exp_dir = root_dir + exp_folder_name + '/'
@@ -430,29 +430,46 @@ def main(argv):
 		format= 'png', orientation = "landscape", dpi= 300)
 	pyplot.close(fig=None)
 
-	'''
-	Draw a scatter plot of weighed metric  for the experiment
-	'''
-	exp_folder_name = '.'
-	analysis_folder = root_dir + "analysis/" + '/'
-	file_name = analysis_folder + 'norm_data.csv'
-	print(file_name)	
-	run_ids, wm_list = get_compute_cycles_list(file_name=file_name, field_y_axis=' weighed_metric')
+	root_dir = './outputs/'
+	exp_folder_name = 'bigLittleArch_outputs_short_pm'
+	# Analysis file location
+	analysis_folder = root_dir + "analysis/" + exp_folder_name + '/'
 
-	fig, axes = pyplot.subplots()
-	figName = 'outputs/figures/scatter_plot_exp_ws_weighed_metric_2.png'
-	color = '#4F81BD'
-	axes.scatter(run_ids, wm_list, marker='o', color=color)
-	axes.set_xlabel('Run name')
-	axes.set_ylabel('Weighed metric', color=color)
-	axes.set_title('Weighed metric vs run name')
-	axes.tick_params(axis='y', labelcolor=color)
-	axes.tick_params(axis='x', rotation=90, labelsize=6)
-	axes.grid(True)
-	fig.tight_layout()
-	pyplot.savefig(figName, transparent = False, \
-		format= 'png', orientation = "landscape", dpi= 300)
-	pyplot.close(fig=None)
+	weights = [	{'cycles':1, 'au':0, 'power':0, 'maxBW':0},\
+				{'cycles':0.25, 'au':0.25, 'power':0.25, 'maxBW':0.25},\
+				{'cycles':0.5, 'au':0.25, 'power':0.125, 'maxBW':0.125}]
+	# Find best configuration using norm method
+	file_name = analysis_folder + 'run_summary.csv'
+	for ind, weight_data in enumerate(weights):
+		norm_file_name = analysis_folder + 'norm_file_' + str(ind) + '.csv'
+		best_config_norm = find_best_config_norm(file_name=file_name,\
+				 metric_weights=weight_data,
+				 output_file_name=norm_file_name)
+
+		'''
+		Draw a scatter plot of weighed metric  for the experiment
+		'''
+		# exp_folder_name = '.'
+		# analysis_folder = root_dir + "analysis/" + '/'
+		# file_name = analysis_folder + 'norm_data.csv'
+		file_name = norm_file_name
+		print(file_name)	
+		run_ids, wm_list = get_compute_cycles_list(file_name=file_name, field_y_axis=' weighed_metric')
+
+		fig, axes = pyplot.subplots()
+		figName = 'outputs/figures/scatter_plot_exp_weighed_metric_' + str(ind) + '.png'
+		color = '#4F81BD'
+		axes.scatter(run_ids, wm_list, marker='o', color=color)
+		axes.set_xlabel('Run name')
+		axes.set_ylabel('Weighed metric', color=color)
+		axes.set_title('Weighed metric vs run name')
+		axes.tick_params(axis='y', labelcolor=color)
+		axes.tick_params(axis='x', rotation=90, labelsize=6)
+		axes.grid(True)
+		fig.tight_layout()
+		pyplot.savefig(figName, transparent = False, \
+			format= 'png', orientation = "landscape", dpi= 300)
+		pyplot.close(fig=None)
 	
 if __name__ == '__main__':
   app.run(main)
