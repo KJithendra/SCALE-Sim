@@ -2,6 +2,8 @@ import math
 from tqdm import tqdm
 
 import datetime
+import os
+import time
 
 def sram_traffic(
         dimension_rows=4,
@@ -65,7 +67,20 @@ def sram_traffic(
     for px in range(int(e2)):         #number of ofmap px in a ofmap channel
         addr = (px / E_w) * strides * hc + (px%E_w) * strides
         all_ifmap_base_addr.append(addr)
-    sram_trace_exec_time_file  = open("sram_traffic_gen_traces.txt", 'a+')
+
+    # Generate sram traffice file
+    sram_traffic_file_dir = "./outputs/writelines_test/"
+    if not os.path.exists(sram_traffic_file_dir):
+        os.system("mkdir -p " + sram_traffic_file_dir)
+    sram_traffic_file_name = sram_traffic_file_dir + "/./sram_traffic_gen_traces.txt"
+    if os.path.exists(sram_traffic_file_name):
+        t = time.time()
+        new_sram_traffic_file_name= sram_traffic_file_name + "_" + str(t)
+        os.system("mv " + sram_traffic_file_name + " " + new_sram_traffic_file_name)  
+    sram_trace_exec_time_file  = open(sram_traffic_file_name, 'a+')
+
+    write_lines_list = [] # List to be written into output trace
+
     for v in tqdm(range(int(num_v_folds))):
         #print("V fold id: " + str(v))
             
@@ -137,7 +152,9 @@ def sram_traffic(
                 ofmap_trace_end_time = datetime.datetime.now()
                 ofmap_trace_exec_time = ofmap_trace_end_time - ofmap_trace_start_time
                 write_sting = str(filter_trace_exec_time) + ", " + str(ifmap_trace_exec_time) + ', ' + str(ofmap_trace_exec_time) + '\n'
-                sram_trace_exec_time_file.write(write_sting)
+                
+                # sram_trace_exec_time_file.write(write_sting)
+                write_lines_list.append(write_sting) # Append the write string into write lines List
 
                 #print("IFMAPS processed by " + str(cycles) + " cycles")
                 util_this_fold = (rows_this_fold * cols_this_fold) /(dimension_rows * dimension_cols)
@@ -149,6 +166,8 @@ def sram_traffic(
                 util += util_this_fold *  del_cycl
                 compute_cycles += del_cycl
                 prev_cycl = cycles
+            sram_trace_exec_time_file.writelines(write_lines_list)
+            write_lines_list.clear()
 
         else:
             #filters_this_fold = min(remaining_cols, max_cols_per_v_fold)
@@ -206,7 +225,9 @@ def sram_traffic(
             ofmap_trace_end_time = datetime.datetime.now()
             ofmap_trace_exec_time = ofmap_trace_end_time - ofmap_trace_start_time
             write_sting = str(filter_trace_exec_time) + ", " + str(ifmap_trace_exec_time) + ', ' + str(ofmap_trace_exec_time) + '\n'
-            sram_trace_exec_time_file.write(write_sting)
+            
+            # sram_trace_exec_time_file.write(write_sting)
+            write_lines_list.append(write_sting) # Append the write string into write lines List
 
 
             cycles = max(cycles_ifmap, cycles_ofmap)
@@ -229,6 +250,9 @@ def sram_traffic(
             util += util_this_fold * del_cycl
             compute_cycles += del_cycl
             prev_cycl = cycles
+
+        sram_trace_exec_time_file.writelines(write_lines_list)
+        write_lines_list.clear()
 
         remaining_cols -= cols_this_fold
     sram_trace_exec_time_file.write("\n\n")
@@ -260,6 +284,8 @@ def gen_filter_trace(
     r2c = filt_h * filt_w * num_channels 
 
     rem = filters_this_fold                 # Track the number of filters yet to process
+           
+    write_lines_list = [] # List to be written into output trace
 
     #For each wrap around
     for w in range(parallel_window):
@@ -283,8 +309,11 @@ def gen_filter_trace(
                     entry += ", "
 
             entry += "\n"
-            outfile.write(entry)
- 
+            
+            # outfile.write(entry)
+            write_lines_list.append(entry)
+        outfile.writelines(write_lines_list)
+        write_lines_list.clear()
     outfile.close()
     return cycle
 
@@ -323,6 +352,8 @@ def gen_ifmap_trace(
 
     base_addr = 0
     
+    write_lines_list = [] # List to be written into output trace
+
     for e in range(int(e2)):
         entry = str(cycle) + ", "
         cycle += 1    
@@ -349,7 +380,9 @@ def gen_ifmap_trace(
                 entry += str(row_entry[l - ridx -1]) + ", "
 
         entry += postfix
-        outfile.write(entry)
+        
+        # outfile.write(entry)
+        write_lines_list.append(entry)
 
         # Calculate the IFMAP addresses for next cycle
         px_this_row = (e+1) % E_w
@@ -360,7 +393,9 @@ def gen_ifmap_trace(
         else:
             base_addr += stride * num_channels
         #print("OFAMP px = " + str(e+1) + " base_addr: " + str(base_addr))
-
+    
+    outfile.writelines(write_lines_list)
+    write_lines_list.clear()        
     outfile.close()
     return cycle, used_rows
 
@@ -379,6 +414,8 @@ def gen_trace_filter_partial(
         prefix = ""
         for r in range(num_rows):
             prefix += ", "
+        
+        write_lines_list = [] # List to be written into output trace
 
         # Entries per cycle 
         for r in range(remaining):              # number of rows this cycle
@@ -390,7 +427,11 @@ def gen_trace_filter_partial(
             
             cycle += 1
             entry += "\n"
-            outfile.write(entry)
+            # outfile.write(entry)
+            write_lines_list.append(entry)
+
+        outfile.writelines(write_lines_list)
+        write_lines_list.clear()
 
         outfile.close()
 
@@ -432,6 +473,8 @@ def gen_trace_ifmap_partial(
     ofmap_offset = filter_done
     effective_cols = min(remaining_filters, num_cols)
     tick = 0                                # Proxy for clock to track input skewing
+
+    write_lines_list = [] # List to be written into output trace
 
     # Outerloop for all ofmap pixels in an ofmap channel
     for e in range(int(num_ofmap_px)):
@@ -476,7 +519,8 @@ def gen_trace_ifmap_partial(
             postfix += "\n"
         '''
         entry += postfix
-        outfile.write(entry)
+        # outfile.write(entry)
+        write_lines_list.append(entry)
 
         px_this_row = (e+1) % E_w
         if px_this_row == 0:
@@ -486,7 +530,10 @@ def gen_trace_ifmap_partial(
         else:
             base_addr += stride * num_channels
         #print("OFAMP px = " + str(e+1) + " base_addr: " + str(base_addr))
-
+    
+    outfile.writelines(write_lines_list)
+    write_lines_list.clear()
+    
     outfile.close()
     return cycle
 
@@ -522,6 +569,8 @@ def gen_trace_ofmap(
     
     effective_cols    = num_cols * parallel_window
     effective_cols    = min(effective_cols, remaining_filters)
+    
+    write_lines_list = [] # List to be written into output trace
 
     for e in range(int(num_ofmap_px)):
         entry = str(cycle) + ", "
@@ -538,7 +587,11 @@ def gen_trace_ofmap(
                 entry += "!, "
 
         entry += "\n"
-        outfile.write(entry)
+        # outfile.write(entry)
+        write_lines_list.append(entry)
+
+    outfile.writelines(write_lines_list)
+    write_lines_list.clear()
 
     outfile.close()
     return cycle
@@ -565,6 +618,8 @@ def gen_trace_ofmap_partial_imm(
         a = (filters_done + col)
         col_addr.append(a)
     
+    write_lines_list = [] # List to be written into output trace   
+    
     for tick in range(int(num_ofmap_px + num_cols)):
         cycle = start_cycle + tick
 
@@ -578,7 +633,11 @@ def gen_trace_ofmap_partial_imm(
                 entry += ", "
         
         entry += "\n"
-        outfile.write(entry)
+        # outfile.write(entry)
+        write_lines_list.append(entry)
+    
+    outfile.writelines(write_lines_list)
+    write_lines_list.clear()
 
     outfile.close()
 

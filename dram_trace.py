@@ -35,6 +35,8 @@ def dram_trace_read_v2(
     sram_requests = open(sram_trace_file, 'r')
     dram          = open(dram_trace_file, 'w')
 
+    write_lines_list = [] # List to be written into output trace
+
     #for entry in tqdm(sram_requests):
     for entry in sram_requests:
         elems = entry.strip().split(',')
@@ -68,8 +70,11 @@ def dram_trace_read_v2(
                                 trace += str(p) + ", "
 
                         trace += "\n"
-                        dram.write(trace)
+                        write_lines_list.append(trace)
+                        # dram.write(trace)
                         c += 1
+                    dram.writelines(write_lines_list)
+                    write_lines_list.clear()
 
                     t_fill_start    = t_drain_start
                     t_drain_start   = clk
@@ -97,8 +102,11 @@ def dram_trace_read_v2(
                     trace += str(p) + ", "
 
             trace += "\n"
-            dram.write(trace)
+            write_lines_list.append(trace)
+            # dram.write(trace)
             c += 1
+        dram.writelines(write_lines_list)
+        write_lines_list.clear()
 
     sram_requests.close()
     dram.close()
@@ -125,6 +133,9 @@ def dram_trace_write(ofmap_sram_size = 64,
     sram_buffer = [set(), set()]
     filling_buf     = 0
     draining_buf    = 1
+    temp_nol        = 100 # Maximum number of lines to be written at once into file
+
+    write_lines_list = [] # List to be written into output trace
 
     for row in traffic:
         elems = row.strip().split(',')
@@ -158,8 +169,14 @@ def dram_trace_write(ofmap_sram_size = 64,
                         if len(sram_buffer[draining_buf]) > 0:
                             addr = sram_buffer[draining_buf].pop()
                             trace += str(addr) + ", "
-
-                    trace_file.write(trace + "\n")
+                    # trace_file.write(trace + "\n")                    
+                    trace += "\n"
+                    write_lines_list.append(trace)
+                    if(c%temp_nol == 0):
+                        trace_file.writelines(write_lines_list)
+                        write_lines_list.clear()                       
+                trace_file.writelines(write_lines_list)
+                write_lines_list.clear()
 
             #Swap the ids for drain buffer and fill buffer
             tmp             = draining_buf
@@ -191,8 +208,15 @@ def dram_trace_write(ofmap_sram_size = 64,
                     addr = sram_buffer[draining_buf].pop()
                     trace += str(addr) + ", "
 
-            trace_file.write(trace + "\n")
+            # trace_file.write(trace + "\n")
+            trace += "\n"
+            write_lines_list.append(trace)
+            if(c%temp_nol == 0):
+                trace_file.writelines(write_lines_list)
+                write_lines_list.clear()                          
             reasonable_clk = max(c, clk)
+        trace_file.writelines(write_lines_list)
+        write_lines_list.clear()
 
     if len(sram_buffer[filling_buf]) > 0:
         data_per_clk = default_write_bw
@@ -207,8 +231,14 @@ def dram_trace_write(ofmap_sram_size = 64,
                     addr = sram_buffer[filling_buf].pop()
                     trace += str(addr) + ", "
 
-            trace_file.write(trace + "\n")
-
+            # trace_file.write(trace + "\n")
+            trace += "\n"
+            write_lines_list.append(trace)
+            if(c%temp_nol == 0):
+                trace_file.writelines(write_lines_list)
+                write_lines_list.clear()                       
+        trace_file.writelines(write_lines_list)
+        write_lines_list.clear()
 
     #All traces done
     traffic.close()
